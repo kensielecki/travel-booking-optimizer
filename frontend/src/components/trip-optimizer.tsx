@@ -62,6 +62,7 @@ export function TripOptimizer({
   const [providerReadiness, setProviderReadiness] = useState<ProviderReadiness[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const isLocalApi = apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1");
 
   const capturedCount = (ingestionState?.accounts.length ?? 0) + (ingestionState?.offers.length ?? 0);
   const capturedAccounts = ingestionState?.accounts ?? [];
@@ -131,7 +132,13 @@ export function TripOptimizer({
       } catch (caught) {
         if (!cancelled) {
           setProviderReadiness([]);
-          setError(caught instanceof Error ? caught.message : "Could not reach travel API");
+          setError(
+            isLocalApi
+              ? "Live backend is not connected to this hosted beta yet."
+              : caught instanceof Error
+                ? caught.message
+                : "Could not reach travel API",
+          );
         }
       }
     }
@@ -434,7 +441,7 @@ export function TripOptimizer({
               <div>
                 <p className="text-xs font-semibold uppercase text-signal">Live itinerary</p>
                 <h2 className="mt-1 text-xl font-semibold text-ink">
-                  {response ? "Best booking paths from live providers" : "Start the API to build an itinerary"}
+                  {response ? "Best booking paths from live providers" : "Connect the API to build a live itinerary"}
                 </h2>
               </div>
               <p className="text-sm text-slate-500">
@@ -472,7 +479,7 @@ export function TripOptimizer({
             </>
           ) : (
             <div className="rounded-lg border border-line bg-white p-8 text-sm text-slate-600">
-              Backend unavailable at <code>{apiUrl}</code>. The frontend shell is ready.
+              The hosted frontend is live. Deploy the FastAPI backend and set <code>NEXT_PUBLIC_API_URL</code> to enable live searches.
             </div>
           )}
         </section>
