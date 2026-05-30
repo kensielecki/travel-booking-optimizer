@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Travel Booking Optimizer Design Drafts</title>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const target = window.location.hash.slice(1);
+        if (!target) return;
+
+        document.querySelectorAll(".draft").forEach((draft) => {
+          if (draft.id !== target) {
+            draft.style.display = "none";
+          }
+        });
+      });
+    </script>
+    <style>
+      :root {
+        --ink: #111317;
+        --muted: #657084;
+        --line: #dce2ea;
+        --panel: #ffffff;
+        --surface: #f4f7fb;
+        --mint: #00a88f;
+        --signal: #ff5a2e;
+        --blue: #2458ff;
+        --violet: #6d5dfc;
+        --gold: #b7791f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #eef3f8;
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .draft {
+        min-height: 920px;
+        padding: 28px;
+        border-bottom: 1px solid #cdd6e3;
+      }
+
+      .draft-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--signal);
+      }
+
+      .app-shell {
+        min-height: 820px;
+        overflow: hidden;
+        border: 1px solid rgba(120, 137, 160, 0.35);
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 4% 3%, rgba(0, 168, 143, 0.12), transparent 30%),
+          linear-gradient(120deg, #fbfcff 0%, #f1f5fb 54%, #edf4f4 100%);
+        box-shadow: 0 24px 70px rgba(27, 39, 60, 0.12);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        min-height: 72px;
+        padding: 0 28px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(14px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 250px;
+      }
+
+      .mark {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 10px;
+        background: #12151b;
+        color: white;
+        font-size: 19px;
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 16px;
+        line-height: 1.1;
+      }
+
+      .brand span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .nav {
+        display: flex;
+        gap: 8px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #f7f9fc;
+      }
+
+      .nav span {
+        padding: 7px 12px;
+        border-radius: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .nav span.active {
+        background: white;
+        color: var(--ink);
+        box-shadow: 0 1px 2px rgba(20, 31, 48, 0.08);
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: white;
+        color: #334158;
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .pill.green {
+        border-color: rgba(0, 168, 143, 0.25);
+        background: rgba(0, 168, 143, 0.09);
+        color: #006b5b;
+      }
+
+      .pill.blue {
+        border-color: rgba(36, 88, 255, 0.18);
+        background: rgba(36, 88, 255, 0.08);
+        color: #2444a6;
+      }
+
+      .pill.orange {
+        border-color: rgba(255, 90, 46, 0.22);
+        background: rgba(255, 90, 46, 0.08);
+        color: #a33b20;
+      }
+
+      .workspace-a {
+        display: grid;
+        grid-template-columns: 1.02fr 1.55fr 0.85fr;
+        gap: 18px;
+        padding: 22px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 24px rgba(34, 48, 70, 0.06);
+      }
+
+      .panel-pad {
+        padding: 18px;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--signal);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 16px;
+        font-size: 34px;
+        line-height: 1.04;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: 22px;
+        line-height: 1.15;
+      }
+
+      h3 {
+        margin-bottom: 6px;
+        font-size: 17px;
+        line-height: 1.25;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .prompt-box {
+        display: grid;
+        gap: 12px;
+      }
+
+      .prompt-area {
+        min-height: 136px;
+        padding: 15px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        color: #1e2430;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .field {
+        min-height: 58px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #fbfcfe;
+      }
+
+      .field small {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .field strong {
+        display: block;
+        font-size: 15px;
+      }
+
+      .primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        border-radius: 12px;
+        background: var(--ink);
+        color: white;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .recommend {
+        border: 1px solid rgba(0, 168, 143, 0.3);
+        border-radius: 16px;
+        background:
+          linear-gradient(135deg, rgba(0, 168, 143, 0.1), rgba(255, 255, 255, 0.94) 42%),
+          white;
+      }
+
+      .rec-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px;
+      }
+
+      .price-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        min-width: 300px;
+      }
+
+      .metric {
+        padding: 10px;
+        border-top: 1px solid var(--line);
+      }
+
+      .metric small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 19px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+        padding: 0 18px 18px;
+      }
+
+      .leg {
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: white;
+      }
+
+      .icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 10px;
+        background: #f0f5ff;
+        color: var(--blue);
+        font-size: 18px;
+      }
+
+      .side-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .mini-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .mini-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+        color: #273349;
+        font-size: 13px;
+      }
+
+      .workspace-b {
+        display: grid;
+        grid-template-columns: 300px 1fr 330px;
+        min-height: 748px;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.64);
+        padding: 22px;
+      }
+
+      .results {
+        padding: 22px;
+      }
+
+      .checkout {
+        border-left: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.78);
+        padding: 22px;
+      }
+
+      .search-strip {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .itinerary-card {
+        margin-bottom: 12px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .itinerary-card.selected {
+        border-color: rgba(36, 88, 255, 0.42);
+        box-shadow: 0 0 0 3px rgba(36, 88, 255, 0.08);
+      }
+
+      .itinerary-main {
+        display: grid;
+        grid-template-columns: 1fr 150px;
+        gap: 14px;
+        padding: 15px;
+      }
+
+      .route {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 10px 0;
+        font-weight: 800;
+      }
+
+      .route span {
+        font-size: 27px;
+        letter-spacing: -0.02em;
+      }
+
+      .line {
+        height: 2px;
+        flex: 1;
+        background: linear-gradient(90deg, var(--blue), var(--mint));
+      }
+
+      .scorebar {
+        display: grid;
+        grid-template-columns: 70% 30%;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e8edf5;
+      }
+
+      .scorebar span:first-child {
+        background: var(--mint);
+      }
+
+      .scorebar span:last-child {
+        background: var(--blue);
+      }
+
+      .summary-card {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .total {
+        margin: 12px 0;
+        padding: 14px 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .total strong {
+        display: block;
+        font-size: 34px;
+        letter-spacing: -0.03em;
+      }
+
+      .workspace-c {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 18px;
+        padding: 22px;
+      }
+
+      .hero-query {
+        min-height: 216px;
+        padding: 24px;
+        border-radius: 18px;
+        background:
+          linear-gradient(135deg, rgba(17, 19, 23, 0.94), rgba(22, 26, 36, 0.88)),
+          linear-gradient(120deg, rgba(0, 168, 143, 0.25), transparent);
+        color: white;
+      }
+
+      .hero-query h1 {
+        max-width: 820px;
+        margin-bottom: 20px;
+        font-size: 38px;
+      }
+
+      .query-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        min-height: 64px;
+        padding: 0 18px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .query-line span {
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .query-line strong {
+        color: white;
+      }
+
+      .premium-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .hotel-visual {
+        min-height: 230px;
+        border-radius: 16px;
+        background:
+          linear-gradient(180deg, rgba(17, 19, 23, 0.04), rgba(17, 19, 23, 0.7)),
+          linear-gradient(135deg, #dbe8ef, #afbfd1 48%, #7d8da2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hotel-visual::before,
+      .hotel-visual::after {
+        content: "";
+        position: absolute;
+        background: rgba(255, 255, 255, 0.32);
+      }
+
+      .hotel-visual::before {
+        width: 150px;
+        height: 260px;
+        right: 60px;
+        bottom: -20px;
+        transform: rotate(7deg);
+      }
+
+      .hotel-visual::after {
+        width: 95px;
+        height: 210px;
+        right: 210px;
+        bottom: -30px;
+        transform: rotate(-5deg);
+      }
+
+      .overlay-caption {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 18px;
+        color: white;
+      }
+
+      .insight-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .insight {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: white;
+      }
+
+      .right-rail {
+        display: grid;
+        gap: 14px;
+      }
+
+      .rank-card {
+        padding: 15px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .rank-card.best {
+        border-color: rgba(183, 121, 31, 0.3);
+        background: linear-gradient(135deg, rgba(183, 121, 31, 0.11), white 40%);
+      }
+
+      @media (max-width: 1100px) {
+        .workspace-a,
+        .workspace-b,
+        .workspace-c {
+          grid-template-columns: 1fr;
+        }
+
+        .checkout,
+        .sidebar {
+          border: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="draft" id="draft-a">
+      <div class="draft-label"><span class="dot"></span>Draft A · Command Center</div>
+      <div class="app-shell">
+        <header class="topbar">
+          <div class="brand">
+            <div class="mark">✈</div>
+            <div><strong>Travel Booking Optimizer</strong><span>Live trip payment intelligence</span></div>
+          </div>
+          <nav class="nav"><span class="active">Optimize</span><span>Trips</span><span>Wallet</span><span>Providers</span></nav>
+          <div class="status"><span class="pill green">4 live sources</span><span class="pill blue">Balanced</span></div>
+        </header>
+        <main class="workspace-a">
+          <aside class="panel panel-pad">
+            <p class="eyebrow">Trip intent</p>
+            <h1>Ask for the trip. Get the strongest booking path.</h1>
+            <div class="prompt-box">
+              <div class="prompt-area">Weekend trip to San Diego in August for four. Direct flights only, arrive before midday, 4 star hotel or higher near La Jolla.</div>
+              <div class="field-grid">
+                <div class="field"><small>From</small><strong>SFO</strong></div>
+                <div class="field"><small>Destination</small><strong>San Diego</strong></div>
+                <div class="field"><small>Dates</small><strong>Aug 14 - 16</strong></div>
+                <div class="field"><small>Budget</small><strong>$2,000</strong></div>
+              </div>
+              <div class="primary">Build itinerary</div>
+            </div>
+          </aside>
+          <section class="panel">
+            <div class="rec-head">
+              <div>
+                <p class="eyebrow">Recommended itinerary</p>
+                <h2>Southwest direct + Marriott La Jolla</h2>
+                <p class="muted">Best mix of out-of-pocket cost, arrival time, offer value, and provider confidence.</p>
+              </div>
+              <div class="price-grid">
+                <div class="metric"><small>Pay now</small><strong>$353</strong></div>
+                <div class="metric"><small>Savings</small><strong>$300</strong></div>
+                <div class="metric"><small>Confidence</small><strong>86%</strong></div>
+              </div>
+            </div>
+            <div class="timeline">
+              <div class="leg"><div class="icon">↗</div><div><strong>SFO to SAN · 7:20 AM direct</strong><br /><span class="muted">Southwest · 1h 32m · arrives before midday</span></div><span class="pill green">live</span></div>
+              <div class="leg"><div class="icon">⌂</div><div><strong>San Diego Marriott La Jolla</strong><br /><span class="muted">4 star · 18 minutes to target area · refundable rate</span></div><span class="pill blue">Google Hotels</span></div>
+              <div class="leg"><div class="icon">$</div><div><strong>Use Amex Travel credit on hotel leg</strong><br /><span class="muted">$300 expected statement credit reduces effective cost</span></div><span class="pill orange">offer</span></div>
+            </div>
+          </section>
+          <aside class="side-stack">
+            <div class="panel panel-pad">
+              <p class="eyebrow">Wallet fit</p>
+              <div class="mini-list">
+                <div class="mini-row"><span>Amex MR</span><strong>6,363 pts</strong></div>
+                <div class="mini-row"><span>Chase UR</span><strong>24,224 pts</strong></div>
+                <div class="mini-row"><span>United</span><strong>20,826 pts</strong></div>
+              </div>
+            </div>
+            <div class="panel panel-pad">
+              <p class="eyebrow">Decision notes</p>
+              <p class="muted">Cash beats points because the redemption value is weak after taxes, while the Amex hotel credit is immediately useful.</p>
+              <span class="pill green">simple path</span>
+            </div>
+            <div class="panel panel-pad">
+              <p class="eyebrow">Provider health</p>
+              <div class="mini-row"><span>Duffel</span><strong>live</strong></div>
+              <div class="mini-row"><span>LiteAPI</span><strong>live</strong></div>
+              <div class="mini-row"><span>SerpApi</span><strong>live</strong></div>
+            </div>
+          </aside>
+        </main>
+      </div>
+    </section>
+
+    <section class="draft" id="draft-b">
+      <div class="draft-label"><span class="dot"></span>Draft B · Airline Checkout</div>
+      <div class="app-shell">
+        <header class="topbar">
+          <div class="brand">
+            <div class="mark">✈</div>
+            <div><strong>Travel Booking Optimizer</strong><span>Search, compare, decide</span></div>
+          </div>
+          <nav class="nav"><span class="active">Flights + Hotels</span><span>Offers</span><span>Points</span></nav>
+          <div class="status"><span class="pill green">Production data</span></div>
+        </header>
+        <main class="workspace-b">
+          <aside class="sidebar">
+            <p class="eyebrow">Preferences</p>
+            <h2>Direct, early, premium enough.</h2>
+            <div class="mini-list">
+              <div class="field"><small>Direct only</small><strong>Yes</strong></div>
+              <div class="field"><small>Arrive by</small><strong>12:00 PM</strong></div>
+              <div class="field"><small>Hotel floor</small><strong>4 star+</strong></div>
+              <div class="field"><small>Ranking</small><strong>Balanced</strong></div>
+            </div>
+          </aside>
+          <section class="results">
+            <div class="search-strip">
+              <div class="field"><small>Origin</small><strong>SFO</strong></div>
+              <div class="field"><small>Destination</small><strong>San Diego</strong></div>
+              <div class="field"><small>Trip</small><strong>Aug 14 - 16</strong></div>
+              <div class="primary" style="padding: 0 18px">Search</div>
+            </div>
+            <div class="itinerary-card selected">
+              <div class="itinerary-main">
+                <div>
+                  <span class="pill green">best path</span>
+                  <div class="route"><span>SFO</span><div class="line"></div><span>SAN</span></div>
+                  <h3>Southwest direct + Marriott La Jolla</h3>
+                  <p class="muted">1h 32m flight · hotel 18 minutes from target · Amex credit applies</p>
+                  <div class="scorebar"><span></span><span></span></div>
+                </div>
+                <div class="metric"><small>Effective cost</small><strong>$353</strong><span class="muted">Save $300</span></div>
+              </div>
+            </div>
+            <div class="itinerary-card">
+              <div class="itinerary-main">
+                <div>
+                  <span class="pill blue">lower fare</span>
+                  <div class="route"><span>SFO</span><div class="line"></div><span>SAN</span></div>
+                  <h3>United direct + Sheraton San Diego</h3>
+                  <p class="muted">Better airline fit, weaker hotel location, same offer value.</p>
+                </div>
+                <div class="metric"><small>Effective cost</small><strong>$403</strong><span class="muted">Save $300</span></div>
+              </div>
+            </div>
+            <div class="itinerary-card">
+              <div class="itinerary-main">
+                <div>
+                  <span class="pill orange">points option</span>
+                  <div class="route"><span>SFO</span><div class="line"></div><span>SAN</span></div>
+                  <h3>United award + cash hotel</h3>
+                  <p class="muted">Preserves cash, but redemption value is below target.</p>
+                </div>
+                <div class="metric"><small>CPP</small><strong>1.1¢</strong><span class="muted">Not ideal</span></div>
+              </div>
+            </div>
+          </section>
+          <aside class="checkout">
+            <p class="eyebrow">Booking path</p>
+            <h2>Recommended payment stack</h2>
+            <div class="summary-card">
+              <span class="pill green">ready to review</span>
+              <div class="total"><small class="muted">Pay now</small><strong>$353</strong><span class="muted">$300 savings included</span></div>
+              <div class="mini-row"><span>Flight</span><strong>Southwest cash</strong></div>
+              <div class="mini-row"><span>Hotel</span><strong>Amex Travel credit</strong></div>
+              <div class="mini-row"><span>Points</span><strong>Save for later</strong></div>
+              <div class="primary" style="margin-top: 16px">Open details</div>
+            </div>
+          </aside>
+        </main>
+      </div>
+    </section>
+
+    <section class="draft" id="draft-c">
+      <div class="draft-label"><span class="dot"></span>Draft C · Premium Concierge</div>
+      <div class="app-shell">
+        <header class="topbar">
+          <div class="brand">
+            <div class="mark">✈</div>
+            <div><strong>Travel Booking Optimizer</strong><span>Personal travel strategy desk</span></div>
+          </div>
+          <nav class="nav"><span class="active">Plan</span><span>Monitor</span><span>Book</span></nav>
+          <div class="status"><span class="pill green">Live market scan</span><span class="pill orange">3 offers matched</span></div>
+        </header>
+        <main class="workspace-c">
+          <section>
+            <div class="hero-query">
+              <p class="eyebrow">Trip brief</p>
+              <h1>Find the best weekend path to San Diego for four without wasting good points.</h1>
+              <div class="query-line"><span>Direct flights · arrive before noon · 4 star+ hotel · near La Jolla</span><strong>Optimize</strong></div>
+            </div>
+            <div class="premium-grid">
+              <div class="hotel-visual">
+                <div class="overlay-caption">
+                  <span class="pill green">recommended stay</span>
+                  <h2 style="margin-top: 10px">Marriott La Jolla</h2>
+                  <p>Quiet location fit, strong rate confidence, offer-enhanced booking path.</p>
+                </div>
+              </div>
+              <div class="insight-list">
+                <div class="insight"><span class="pill blue">flight</span><h3>Southwest direct wins on timing</h3><p class="muted">United is acceptable, but arrives later or costs more after constraints.</p></div>
+                <div class="insight"><span class="pill orange">offer</span><h3>Use hotel credit, not points</h3><p class="muted">Cash plus credit beats the available redemption value in this search.</p></div>
+              </div>
+            </div>
+          </section>
+          <aside class="right-rail">
+            <div class="rank-card best">
+              <p class="eyebrow">Rank 1</p>
+              <h2>Cash flight + Amex hotel credit</h2>
+              <p class="muted">Best total value while preserving transferable points.</p>
+              <div class="total"><small class="muted">Effective cost</small><strong>$353</strong></div>
+              <span class="pill green">86% confidence</span>
+            </div>
+            <div class="rank-card">
+              <p class="eyebrow">Rank 2</p>
+              <h3>United direct + Marriott</h3>
+              <p class="muted">Better loyalty preference, slightly weaker total price.</p>
+              <span class="pill blue">$353 - $420 range</span>
+            </div>
+            <div class="rank-card">
+              <p class="eyebrow">Rank 3</p>
+              <h3>Points-heavy fallback</h3>
+              <p class="muted">Only attractive if cash budget tightens or award space improves.</p>
+              <span class="pill orange">watchlist</span>
+            </div>
+          </aside>
+        </main>
+      </div>
+    </section>
+  </body>
+</html>
