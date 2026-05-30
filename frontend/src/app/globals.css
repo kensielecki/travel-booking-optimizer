@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #111317;
+  background: #f5f7fa;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(90deg, rgba(0,168,143,0.08), transparent 28%, rgba(37,99,235,0.08)),
+    linear-gradient(180deg, #fbfcfd 0%, #f3f5f8 46%, #eef2f6 100%);
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(0, 168, 143, 0.18);
+}

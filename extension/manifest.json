@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Travel Booking Optimizer Capture",
+  "description": "Locally capture visible loyalty balances and offers for optimization without storing passwords or sessions.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Travel Booking Optimizer",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://127.0.0.1:8000/*", "http://localhost:8000/*"]
+}
