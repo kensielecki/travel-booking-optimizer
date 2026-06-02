@@ -60,8 +60,14 @@ def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse
         warnings.extend(flight_response.warnings)
         warnings.extend(hotel_response.warnings)
 
-        flight = _best_flight_option(flight_response.booking_options, constraints)
-        hotel = _best_hotel_option(hotel_response.booking_options, constraints)
+        flight = _best_flight_option(
+            _filter_mock_options_for_discovery(flight_response.booking_options, flight_response.provider_statuses),
+            constraints,
+        )
+        hotel = _best_hotel_option(
+            _filter_mock_options_for_discovery(hotel_response.booking_options, hotel_response.provider_statuses),
+            constraints,
+        )
         if not flight or not hotel:
             continue
 
@@ -172,6 +178,20 @@ def _best_flight_option(options: list[BookingOption], constraints: dict) -> Book
     if minutes and max_flight and minutes > max_flight + 45:
         return None
     return best
+
+
+def _filter_mock_options_for_discovery(
+    options: list[BookingOption],
+    statuses: list[ProviderStatus],
+) -> list[BookingOption]:
+    non_mock = [option for option in options if option.source_environment != "mock"]
+    if non_mock:
+        return non_mock
+
+    non_mock_provider_was_attempted = any(status.status in {"live", "failed"} for status in statuses)
+    if non_mock_provider_was_attempted:
+        return []
+    return options
 
 
 def _best_hotel_option(options: list[BookingOption], constraints: dict) -> BookingOption | None:
