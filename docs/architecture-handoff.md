@@ -1,6 +1,6 @@
 # Travel Booking Optimizer Architecture Handoff
 
-Last updated: 2026-05-29
+Last updated: 2026-06-01
 
 ## Latest Session Notes
 
@@ -38,6 +38,7 @@ Last updated: 2026-05-29
 - 2026-05-29: Added inline expandable itinerary cards. Clicking a recommendation reveals booking path, payment math, parsed trip legs, ranking reasons, and provider notes without creating any booking/order flow.
 - 2026-05-29: Refreshed the frontend visual direction toward a slick minimalist workspace: removed the photographic background, added a crisper sticky top bar, widened the work area, tightened cards/forms, and introduced restrained teal/blue/orange accents.
 - 2026-05-29: Changed local `.env` loading to override process environment on server restart, so provider key swaps are reflected reliably after restarting FastAPI.
+- 2026-06-01: Product decision: keep Crossmint and Lobster Cash as the preferred future infrastructure direction for supervised agent payments and scoped virtual-card execution. They are a payment/checkout layer, not a live travel inventory source, and should only be introduced after explicit booking-review and approval flows exist.
 
 ## Project Location
 
@@ -120,6 +121,9 @@ It does not call provider APIs. It only reads local configuration and returns pr
 
 5. Booking is not V0.
    V0 should recommend and deep-link/manual-book. In-app booking is a later product because it involves payments, cancellation handling, user profile data, supplier terms, and support workflows.
+
+6. Payment-agent infrastructure is planned for later.
+   Crossmint and Lobster Cash are the preferred future candidates for agent-assisted payment permissions, virtual cards, and scoped checkout execution. They should sit after deterministic search/ranking and final user approval, not replace travel inventory providers. See `docs/payment-agent-infrastructure.md`.
 
 ## Important Files
 
@@ -342,7 +346,7 @@ V3:
 
 - In-app booking via provider APIs.
 - Traveler profiles.
-- Payment handling.
+- Payment handling through scoped payment-agent infrastructure such as Crossmint and Lobster Cash, subject to provider acceptance and compliance review.
 - Cancellation/modification flows.
 - Support workflow.
 - Compliance/security review.

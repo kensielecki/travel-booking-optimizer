@@ -1,6 +1,6 @@
 # V1 Live Data Plan
 
-Last updated: 2026-05-19
+Last updated: 2026-06-01
 
 ## Goal
 
@@ -57,3 +57,9 @@ Move from a demoable optimizer to a live travel-search product with clear provid
 - Production and sandbox prices are not treated as equally reliable in ranking.
 - Mock options appear only as fallback.
 - No credentials or captured user secrets are exposed to the browser.
+
+## Payment-Agent Note
+
+Crossmint and Lobster Cash are reserved for the later supervised payment layer, not V1 inventory search. Use them as candidate infrastructure for scoped virtual cards, agent payment permissions, and checkout execution after the app has final booking-review screens, explicit user approval, and payment audit records.
+
+See `docs/payment-agent-infrastructure.md`.
