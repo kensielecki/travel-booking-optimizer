@@ -14,7 +14,14 @@ import { AccountBalanceEditor } from "@/components/account-balance-editor";
 import { ClearCapturedData } from "@/components/clear-captured-data";
 import { RecommendationCard } from "@/components/recommendation-card";
 import { dollars, points } from "@/lib/format";
-import type { IngestionState, OptimizationResponse, Program, RankingMode, Recommendation } from "@/lib/types";
+import type {
+  IngestionState,
+  OptimizationResponse,
+  Program,
+  ProviderReadiness,
+  RankingMode,
+  Recommendation,
+} from "@/lib/types";
 
 const PROGRAM_OPTIONS: Array<{ label: string; value: Program }> = [
   { label: "United", value: "united" },
@@ -65,6 +72,7 @@ export function TripOptimizer({
   const [arrivalWindow, setArrivalWindow] = useState("Arrive before midday");
   const [hotelPreference, setHotelPreference] = useState("4 star or higher, within 20 minutes");
   const [response, setResponse] = useState<OptimizationResponse | null>(initialDemo);
+  const [providerReadiness, setProviderReadiness] = useState<ProviderReadiness[]>([]);
   const [ingestionState, setIngestionState] = useState<IngestionState | null>(initialIngestionState);
   const [error, setError] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -75,9 +83,14 @@ export function TripOptimizer({
   const capturedCount = capturedAccounts.length + capturedOffers.length;
 
   const providerStatuses = response?.provider_statuses ?? [];
+  const configuredProviderReadiness = providerReadiness.filter((provider) => provider.configured);
   const liveProductionCount = providerStatuses.filter(
     (status) => status.status === "live" && status.environment === "production",
   ).length;
+  const readyProductionCount = configuredProviderReadiness.filter(
+    (provider) => provider.environment === "production",
+  ).length;
+  const connectedSourceCount = liveProductionCount || readyProductionCount;
 
   const groupedRecommendations = useMemo(() => {
     const recommendations = response?.recommendations ?? [];
@@ -117,7 +130,7 @@ export function TripOptimizer({
         }
 
         if (readinessResponse.ok) {
-          await readinessResponse.json();
+          setProviderReadiness((await readinessResponse.json()) as ProviderReadiness[]);
         }
 
         if (demoResponse?.ok) {
@@ -232,8 +245,8 @@ export function TripOptimizer({
           </nav>
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill tone={liveProductionCount ? "green" : "blue"}>
-              {liveProductionCount ? `${liveProductionCount} live sources` : "Beta shell"}
+            <StatusPill tone={connectedSourceCount ? "green" : "blue"}>
+              {connectedSourceCount ? `${connectedSourceCount} connected sources` : "Beta shell"}
             </StatusPill>
             <StatusPill tone="blue">
               <SlidersHorizontal size={14} aria-hidden="true" />
@@ -363,13 +376,19 @@ export function TripOptimizer({
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Itinerary options</p>
                 <h2 className="mt-1 text-xl font-semibold text-ink">
-                  {response ? "Ranked booking paths" : "Connect the API to build a live itinerary"}
+                  {response
+                    ? "Ranked booking paths"
+                    : connectedSourceCount
+                      ? "API connected. Ready to build a live itinerary."
+                      : "Connect the API to build a live itinerary"}
                 </h2>
               </div>
               <p className="text-sm text-slate-500">
                 {comparisonOptions.length
                   ? `${comparisonOptions.length} best ${comparisonOptions.length === 1 ? "option" : "options"}`
-                  : "Waiting for provider results"}
+                  : connectedSourceCount
+                    ? `${connectedSourceCount} production sources ready`
+                    : "Waiting for provider results"}
               </p>
             </div>
 
@@ -387,9 +406,7 @@ export function TripOptimizer({
                   />
                 ))
               ) : (
-                <div className="rounded-2xl border border-line bg-white p-8 text-sm text-slate-600">
-                  The hosted frontend is live. Deploy the FastAPI backend and set <code>NEXT_PUBLIC_API_URL</code> to enable live searches.
-                </div>
+                <ConnectedEmptyState connectedSourceCount={connectedSourceCount} providerReadiness={providerReadiness} />
               )}
             </div>
 
@@ -596,9 +613,9 @@ function BookingPath({ recommendation }: { recommendation: Recommendation | null
   if (!recommendation) {
     return (
       <div className="mt-4 rounded-2xl border border-line bg-white p-4">
-        <StatusPill tone="blue">ready for API</StatusPill>
+        <StatusPill tone="blue">ready to search</StatusPill>
         <p className="mt-4 text-sm leading-5 text-slate-600">
-          Once the backend is connected, this panel will show the selected booking path, payment stack, and savings.
+          Run a search to generate the selected booking path, payment stack, and savings.
         </p>
       </div>
     );
@@ -632,6 +649,41 @@ function BookingPath({ recommendation }: { recommendation: Recommendation | null
         <WalletCards size={16} aria-hidden="true" />
         Open details
       </button>
+    </div>
+  );
+}
+
+function ConnectedEmptyState({
+  connectedSourceCount,
+  providerReadiness,
+}: {
+  connectedSourceCount: number;
+  providerReadiness: ProviderReadiness[];
+}) {
+  if (!connectedSourceCount) {
+    return (
+      <div className="rounded-2xl border border-line bg-white p-8 text-sm text-slate-600">
+        The hosted frontend is live. Deploy the FastAPI backend and set <code>NEXT_PUBLIC_API_URL</code> to enable live searches.
+      </div>
+    );
+  }
+
+  const configured = providerReadiness.filter((provider) => provider.configured).slice(0, 5);
+
+  return (
+    <div className="rounded-2xl border border-accent/30 bg-white p-5 shadow-sm">
+      <StatusPill tone="green">{connectedSourceCount} production sources ready</StatusPill>
+      <p className="mt-3 text-sm leading-5 text-slate-600">
+        The Render API is connected. Press <strong>Search</strong> or <strong>Build itinerary</strong> to pull live flight and hotel results.
+      </p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {configured.map((provider) => (
+          <div key={`${provider.category}-${provider.provider}`} className="rounded-xl border border-line bg-surface/70 p-3">
+            <p className="text-sm font-semibold text-ink">{provider.provider.replaceAll("_", " ")}</p>
+            <p className="mt-1 text-xs font-semibold uppercase text-teal-700">{provider.environment}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
