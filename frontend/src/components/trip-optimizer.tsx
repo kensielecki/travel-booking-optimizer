@@ -108,6 +108,7 @@ export function TripOptimizer({
     : groupedRecommendations.standalone;
   const selectedOption = rankedOptions[0] ?? null;
   const comparisonOptions = rankedOptions.slice(0, 3);
+  const discoverySummary = response ? getDiscoverySummary(response) : null;
 
   const normalizedBudget = useMemo(() => {
     const parsed = Number(budget.replace(/[$,]/g, ""));
@@ -401,6 +402,8 @@ export function TripOptimizer({
 
             {error ? <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p> : null}
 
+            {discoverySummary ? <DiscoverySummaryPanel summary={discoverySummary} /> : null}
+
             <div className="mt-4 space-y-3">
               {comparisonOptions.length ? (
                 comparisonOptions.map((recommendation, index) => (
@@ -524,6 +527,89 @@ function shouldUseDiscoveryMode(intent: string, destination: string) {
   const hasDiscoverySignal = discoverySignals.some((signal) => text.includes(signal));
   const hasSpecificDestination = /\b(nyc|new york|san diego|los angeles|las vegas|seattle|portland|phoenix|palm springs)\b/.test(text);
   return hasDiscoverySignal && !hasSpecificDestination;
+}
+
+function getDiscoverySummary(response: OptimizationResponse) {
+  const discoveryOptions = response.recommendations
+    .map((recommendation) => recommendation.option)
+    .filter((option) => option.source_provider === "trip_discovery");
+  const searchedWarning = response.warnings.find((warning) => warning.startsWith("Discovery mode:"));
+  const constraintWarning = response.warnings.find((warning) => warning.startsWith("Discovery constraints:"));
+
+  if (!discoveryOptions.length && !searchedWarning) {
+    return null;
+  }
+
+  const destinations = Array.from(
+    new Set(
+      discoveryOptions
+        .map((option) => option.details?.destination)
+        .filter((destination): destination is string => typeof destination === "string" && Boolean(destination.trim())),
+    ),
+  );
+  const searched = searchedWarning?.replace("Discovery mode: searched Bay Area candidates:", "").replace(/\.$/, "").trim();
+
+  return {
+    searched,
+    constraints: constraintWarning?.replace("Discovery constraints:", "").replace(/\.$/, "").trim(),
+    matchedDestinations: destinations,
+    skipped: response.warnings.filter((warning) => warning.startsWith("Skipped ")).slice(0, 4),
+  };
+}
+
+function DiscoverySummaryPanel({
+  summary,
+}: {
+  summary: {
+    searched?: string;
+    constraints?: string;
+    matchedDestinations: string[];
+    skipped: string[];
+  };
+}) {
+  return (
+    <section className="mt-3 rounded-2xl border border-cobalt/20 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Discovery mode</p>
+          <h3 className="mt-1 text-base font-semibold text-ink">Multi-destination search from the Bay Area</h3>
+        </div>
+        <StatusPill tone="blue">query plan</StatusPill>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {summary.searched ? (
+          <div className="rounded-xl border border-line bg-surface/70 p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Searched</p>
+            <p className="mt-1 text-sm leading-5 text-slate-700">{summary.searched}</p>
+          </div>
+        ) : null}
+        {summary.constraints ? (
+          <div className="rounded-xl border border-line bg-surface/70 p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Constraints</p>
+            <p className="mt-1 text-sm leading-5 text-slate-700">{summary.constraints}</p>
+          </div>
+        ) : null}
+      </div>
+      {summary.matchedDestinations.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {summary.matchedDestinations.map((destination) => (
+            <span key={destination} className="rounded-md bg-accent/10 px-2.5 py-1 text-xs font-semibold text-teal-800">
+              {destination}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {summary.skipped.length ? (
+        <div className="mt-3 space-y-1">
+          {summary.skipped.map((warning) => (
+            <p key={warning} className="text-xs leading-5 text-slate-500">
+              {warning}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function PreferenceField({ label, children }: { label: string; children: React.ReactNode }) {

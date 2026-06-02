@@ -48,7 +48,10 @@ def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse
 
     options: list[BookingOption] = []
     provider_statuses: list[ProviderStatus] = []
-    warnings: list[str] = []
+    warnings: list[str] = [
+        f"Discovery mode: searched Bay Area candidates: {', '.join(candidate.city for candidate in candidates)}.",
+        _constraint_summary(constraints),
+    ]
 
     for candidate in candidates:
         flight_search = _candidate_search(request.search, candidate, constraints, destination=candidate.airport)
@@ -69,6 +72,8 @@ def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse
             constraints,
         )
         if not flight or not hotel:
+            missing = "flight and hotel" if not flight and not hotel else "flight" if not flight else "hotel"
+            warnings.append(f"Skipped {candidate.city}: no usable live {missing} option matched the discovery constraints.")
             continue
 
         option = _build_discovery_package(candidate, flight, hotel, constraints)
@@ -111,6 +116,19 @@ def _discovery_constraints(request: TripDiscoveryRequest) -> dict:
         "hotel_min_stars": request.search.hotel_min_stars or _parse_star_floor(text) or 5,
         "include_near_misses": request.include_near_misses,
     }
+
+
+def _constraint_summary(constraints: dict) -> str:
+    parts = [f"hotel floor {constraints.get('hotel_min_stars', 5)} star"]
+    if constraints.get("max_nightly_rate_usd"):
+        parts.append(f"nightly rate under ${constraints['max_nightly_rate_usd']:,.0f}")
+    if constraints.get("max_flight_minutes"):
+        parts.append(f"flight time under {constraints['max_flight_minutes']} min")
+    if constraints.get("max_drive_minutes"):
+        parts.append(f"drive time under {constraints['max_drive_minutes']} min")
+    if constraints.get("include_near_misses"):
+        parts.append("near misses allowed")
+    return f"Discovery constraints: {', '.join(parts)}."
 
 
 def _candidate_destinations(constraints: dict, max_destinations: int, include_near_misses: bool) -> list[CandidateDestination]:
