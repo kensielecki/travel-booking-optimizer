@@ -27,6 +27,9 @@ export interface BookingOption {
   source_provider?: string | null;
   source_environment: "production" | "sandbox" | "mock" | "unknown";
   provider_confidence: number;
+  provider_reference?: string | null;
+  booking_url?: string | null;
+  details: Record<string, unknown>;
   notes: string[];
 }
 

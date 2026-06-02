@@ -799,6 +799,21 @@ def _serpapi_google_hotels(search: TravelSearchRequest, api_key: str) -> dict:
         return json.loads(response.read().decode("utf-8"))
 
 
+def _google_flights_search_url(search: TravelSearchRequest) -> str:
+    query_parts = [
+        "Google Flights",
+        search.origin or "",
+        search.destination,
+        search.departure_date.isoformat() if search.departure_date else "",
+        search.return_date.isoformat() if search.return_date else "",
+    ]
+    return f"https://www.google.com/travel/flights?{urlencode({'q': ' '.join(part for part in query_parts if part)})}"
+
+
+def _google_hotels_search_url(hotel_name: str) -> str:
+    return f"https://www.google.com/travel/hotels?{urlencode({'q': hotel_name})}"
+
+
 def _liteapi_hotel_rates(search: TravelSearchRequest, api_key: str) -> dict:
     payload = {
         "checkin": _date_or_default(search.check_in_date or search.departure_date, days=45).isoformat(),
@@ -897,6 +912,26 @@ def _duffel_offer_to_option(offer: dict, search: TravelSearchRequest) -> Booking
     if slices:
         notes.append(f"Duration: {', '.join(slice_item.get('duration', 'unknown') for slice_item in slices)}.")
 
+    slice_details = [
+        {
+            "origin": slice_item.get("origin", {}).get("iata_code") or slice_item.get("origin", {}).get("name"),
+            "destination": slice_item.get("destination", {}).get("iata_code") or slice_item.get("destination", {}).get("name"),
+            "duration": slice_item.get("duration"),
+            "segments": [
+                {
+                    "airline": segment.get("marketing_carrier", {}).get("name"),
+                    "flight_number": segment.get("marketing_carrier_flight_number"),
+                    "origin": segment.get("origin", {}).get("iata_code") or segment.get("origin", {}).get("name"),
+                    "destination": segment.get("destination", {}).get("iata_code") or segment.get("destination", {}).get("name"),
+                    "departing_at": segment.get("departing_at"),
+                    "arriving_at": segment.get("arriving_at"),
+                }
+                for segment in slice_item.get("segments", [])
+            ],
+        }
+        for slice_item in slices
+    ]
+
     return BookingOption(
         label=f"{carrier} flight offer to {search.destination}",
         booking_type=BookingType.cash,
@@ -906,6 +941,13 @@ def _duffel_offer_to_option(offer: dict, search: TravelSearchRequest) -> Booking
         source_provider="duffel",
         source_environment="sandbox" if os.getenv("DUFFEL_API_TOKEN", "").startswith("duffel_test_") else "production",
         provider_confidence=0.55 if os.getenv("DUFFEL_API_TOKEN", "").startswith("duffel_test_") else 0.9,
+        provider_reference=offer.get("id"),
+        details={
+            "kind": "flight",
+            "currency": currency,
+            "expires_at": offer.get("expires_at"),
+            "slices": slice_details,
+        },
         notes=notes,
     )
 
@@ -973,6 +1015,21 @@ def _serpapi_flight_to_option(flight_result: dict, search: TravelSearchRequest) 
         elif arrival_time:
             notes.append(f"Arrives after preferred {search.latest_arrival_time.strftime('%H:%M')} window.")
 
+    segment_details = [
+        {
+            "airline": segment.get("airline"),
+            "flight_number": segment.get("flight_number"),
+            "airplane": segment.get("airplane"),
+            "travel_class": segment.get("travel_class"),
+            "departure_airport": segment.get("departure_airport", {}).get("name"),
+            "departure_time": segment.get("departure_airport", {}).get("time"),
+            "arrival_airport": segment.get("arrival_airport", {}).get("name"),
+            "arrival_time": segment.get("arrival_airport", {}).get("time"),
+            "duration": _format_minutes(segment.get("duration")),
+        }
+        for segment in segments
+    ]
+
     return BookingOption(
         label=f"{carrier_label} flight to {search.destination} via Google Flights",
         booking_type=BookingType.cash,
@@ -982,6 +1039,14 @@ def _serpapi_flight_to_option(flight_result: dict, search: TravelSearchRequest) 
         source_provider="serpapi_google_flights",
         source_environment="production",
         provider_confidence=0.8,
+        provider_reference=flight_result.get("booking_token") or flight_result.get("departure_token"),
+        booking_url=_google_flights_search_url(search),
+        details={
+            "kind": "flight",
+            "stops": stops,
+            "duration": duration,
+            "segments": segment_details,
+        },
         notes=notes,
     )
 
@@ -1013,6 +1078,24 @@ def _kiwi_flight_to_option(flight_result: dict, search: TravelSearchRequest) -> 
         source_provider="kiwi_tequila_flights",
         source_environment="production",
         provider_confidence=0.75,
+        provider_reference=flight_result.get("id"),
+        booking_url=flight_result.get("deep_link"),
+        details={
+            "kind": "flight",
+            "stops": stops,
+            "duration": duration,
+            "route": [
+                {
+                    "airline": item.get("airline"),
+                    "flight_number": item.get("flight_no"),
+                    "origin": item.get("flyFrom"),
+                    "destination": item.get("flyTo"),
+                    "local_departure": item.get("local_departure"),
+                    "local_arrival": item.get("local_arrival"),
+                }
+                for item in route
+            ],
+        },
         notes=notes,
     )
 
@@ -1089,6 +1172,18 @@ def _liteapi_hotel_to_option(hotel_result: dict, hotel_index: dict[str, dict]) -
         source_provider="liteapi_hotels",
         source_environment=environment,
         provider_confidence=0.55 if environment == "sandbox" else 0.85,
+        provider_reference=str(rate.get("rateId") or rate.get("id") or hotel_id) if (rate.get("rateId") or rate.get("id") or hotel_id) else None,
+        booking_url=hotel.get("url") or hotel_result.get("url"),
+        details={
+            "kind": "hotel",
+            "hotel_id": hotel_id,
+            "room": room_name,
+            "stars": stars,
+            "guest_rating": rating,
+            "refundable": refundable == "RFN" if refundable else None,
+            "payable_at_property_fees_usd": fees,
+            "address": hotel.get("address") or hotel.get("fullAddress"),
+        },
         notes=notes,
     )
 
@@ -1115,6 +1210,16 @@ def _serpapi_property_to_option(property_result: dict) -> BookingOption:
         source_provider="serpapi_google_hotels",
         source_environment="production",
         provider_confidence=0.8,
+        provider_reference=property_result.get("property_token") or property_result.get("hotel_id"),
+        booking_url=property_result.get("link") or _google_hotels_search_url(name),
+        details={
+            "kind": "hotel",
+            "stars": stars,
+            "guest_rating": rating,
+            "reviews": property_result.get("reviews"),
+            "address": property_result.get("address"),
+            "amenities": property_result.get("amenities") or [],
+        },
         notes=notes,
     )
 

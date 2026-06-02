@@ -153,6 +153,27 @@ def _build_trip_package_options(options: list[BookingOption], max_packages: int 
                 source_provider="trip_package",
                 source_environment=source_environment,
                 provider_confidence=provider_confidence,
+                details={
+                    "kind": "trip_package",
+                    "flight": {
+                        "label": flight.label,
+                        "provider": flight.source_provider,
+                        "merchant": flight.merchant,
+                        "cash_price_usd": flight.cash_price_usd,
+                        "booking_url": flight.booking_url,
+                        "provider_reference": flight.provider_reference,
+                        "details": flight.details,
+                    },
+                    "hotel": {
+                        "label": hotel.label,
+                        "provider": hotel.source_provider,
+                        "merchant": hotel.merchant,
+                        "cash_price_usd": hotel.cash_price_usd,
+                        "booking_url": hotel.booking_url,
+                        "provider_reference": hotel.provider_reference,
+                        "details": hotel.details,
+                    },
+                },
                 notes=[
                     "Combined trip path generated from live provider results.",
                     f"Flight leg: {flight.label}.",

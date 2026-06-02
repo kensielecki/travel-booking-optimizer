@@ -124,6 +124,9 @@ class BookingOption(BaseModel):
     source_provider: Optional[str] = None
     source_environment: Literal["production", "sandbox", "mock", "unknown"] = "unknown"
     provider_confidence: float = Field(default=0.7, ge=0, le=1)
+    provider_reference: Optional[str] = None
+    booking_url: Optional[str] = None
+    details: Dict[str, Any] = Field(default_factory=dict)
     notes: List[str] = Field(default_factory=list)
 
 
