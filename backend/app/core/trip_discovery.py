@@ -28,17 +28,17 @@ class CandidateDestination:
 
 
 BAY_AREA_CANDIDATES = [
-    CandidateDestination("San Diego", "SAN", "Southern California", 95, None, "San Diego"),
-    CandidateDestination("Los Angeles", "LAX", "Southern California", 85, None, "Los Angeles"),
-    CandidateDestination("Palm Springs", "PSP", "Southern California", 95, None, "Palm Springs"),
-    CandidateDestination("Las Vegas", "LAS", "Nevada", 95, None, "Las Vegas"),
-    CandidateDestination("Phoenix", "PHX", "Arizona", 120, None, "Phoenix"),
-    CandidateDestination("Santa Barbara", "SBA", "Central Coast", 80, 310, "Santa Barbara"),
-    CandidateDestination("Seattle", "SEA", "Pacific Northwest", 130, None, "Seattle"),
-    CandidateDestination("Portland", "PDX", "Pacific Northwest", 105, None, "Portland"),
-    CandidateDestination("Monterey / Carmel", "MRY", "Central Coast", None, 125, "Carmel Monterey"),
-    CandidateDestination("Napa / Sonoma", "STS", "Wine Country", None, 65, "Napa Sonoma"),
-    CandidateDestination("Lake Tahoe", "RNO", "Tahoe", 70, 230, "Lake Tahoe"),
+    CandidateDestination("San Diego", "SAN", "Southern California", 95, None, "San Diego California"),
+    CandidateDestination("Los Angeles", "LAX", "Southern California", 85, None, "Los Angeles California"),
+    CandidateDestination("Palm Springs", "PSP", "Southern California", 95, None, "Palm Springs California"),
+    CandidateDestination("Las Vegas", "LAS", "Nevada", 95, None, "Las Vegas Nevada"),
+    CandidateDestination("Phoenix", "PHX", "Arizona", 120, None, "Phoenix Arizona"),
+    CandidateDestination("Santa Barbara", "SBA", "Central Coast", 80, 310, "Santa Barbara California"),
+    CandidateDestination("Seattle", "SEA", "Pacific Northwest", 130, None, "Seattle Washington"),
+    CandidateDestination("Portland", "PDX", "Pacific Northwest", 105, None, "Portland Oregon"),
+    CandidateDestination("Monterey / Carmel", "MRY", "Central Coast", None, 125, "Carmel California"),
+    CandidateDestination("Napa", "STS", "Wine Country", None, 65, "Napa California"),
+    CandidateDestination("Lake Tahoe", "RNO", "Tahoe", 70, 230, "Lake Tahoe California"),
 ]
 
 
@@ -118,9 +118,12 @@ def _candidate_destinations(constraints: dict, max_destinations: int, include_ne
         near_flight = candidate.flight_minutes is not None and max_flight is not None and candidate.flight_minutes <= max_flight + 45
         near_drive = candidate.drive_minutes is not None and max_drive is not None and candidate.drive_minutes <= max_drive + 45
 
-        if flight_fit or drive_fit:
+        if max_drive is None and candidate.flight_minutes is None:
+            continue
+
+        if flight_fit or (max_drive is not None and drive_fit):
             score = 0
-        elif include_near_misses and (near_flight or near_drive):
+        elif include_near_misses and (near_flight or (max_drive is not None and near_drive)):
             score = 1
         else:
             continue
@@ -163,7 +166,12 @@ def _best_flight_option(options: list[BookingOption], constraints: dict) -> Book
         violation = 0 if minutes is None or max_flight is None or minutes <= max_flight else minutes - max_flight
         return (violation, option.cash_price_usd, -option.provider_confidence)
 
-    return sorted(options, key=score)[0]
+    best = sorted(options, key=score)[0]
+    minutes = _option_duration_minutes(best)
+    max_flight = constraints.get("max_flight_minutes")
+    if minutes and max_flight and minutes > max_flight + 45:
+        return None
+    return best
 
 
 def _best_hotel_option(options: list[BookingOption], constraints: dict) -> BookingOption | None:
@@ -305,7 +313,7 @@ def _discovery_sort_key(option: BookingOption) -> tuple:
 
 def _parse_time_limit_minutes(text: str, *keywords: str) -> int | None:
     for keyword in keywords:
-        pattern = rf"(?:{keyword}\w*[^.,;]{{0,40}}(?:under|less than|no more than|not more than|within|maximum|max)?\s*)(\d+(?:\.\d+)?)\s*(hour|hours|hr|hrs|minute|minutes|min|mins)"
+        pattern = rf"(?:{keyword}\w*[^.,;]{{0,40}}(?:under|less than|no more than|not more than|do not want[^.,;]*more than|don't want[^.,;]*more than|more than|within|maximum|max)?\s*)(\d+(?:\.\d+)?)\s*(hour|hours|hr|hrs|minute|minutes|min|mins)"
         match = re.search(pattern, text)
         if match:
             value = float(match.group(1))
