@@ -217,13 +217,17 @@ def _best_hotel_option(options: list[BookingOption], constraints: dict) -> Booki
     max_nightly = constraints.get("max_nightly_rate_usd")
 
     def score(option: BookingOption) -> tuple:
-        stars = _float_detail(option, "stars") or hotel_floor
+        quality = _hotel_quality(option, hotel_floor)
         nightly = option.cash_price_usd
-        star_gap = max(0, hotel_floor - stars)
+        star_gap = max(0, hotel_floor - quality)
         price_gap = max(0, nightly - max_nightly) if max_nightly else 0
         return (star_gap, price_gap, nightly, -option.provider_confidence)
 
-    usable = [option for option in options if option.cash_price_usd > 0]
+    usable = [
+        option
+        for option in options
+        if option.cash_price_usd > 0 and _hotel_is_usable(option, constraints)
+    ]
     return sorted(usable, key=score)[0] if usable else None
 
 
@@ -244,7 +248,7 @@ def _build_discovery_package(
         else "unknown"
     )
     flight_minutes = _option_duration_minutes(flight) or candidate.flight_minutes
-    hotel_stars = _float_detail(hotel, "stars")
+    hotel_stars = _hotel_quality(hotel, constraints.get("hotel_min_stars") or 5)
     nightly_rate = hotel.cash_price_usd
     constraint_fit = _constraint_fit(candidate, flight_minutes, hotel_stars, nightly_rate, constraints)
     travel_label = (
@@ -335,6 +339,42 @@ def _constraint_fit(
     if near_misses:
         return "near_miss"
     return "exact"
+
+
+def _hotel_is_usable(option: BookingOption, constraints: dict) -> bool:
+    if option.source_environment == "mock":
+        return True
+
+    hotel_floor = constraints.get("hotel_min_stars") or 5
+    quality = _hotel_quality(option, hotel_floor)
+    if quality >= hotel_floor:
+        return True
+    if constraints.get("include_near_misses") and quality >= hotel_floor - 0.5:
+        return True
+    return False
+
+
+def _hotel_quality(option: BookingOption, hotel_floor: int) -> float:
+    stars = _float_detail(option, "stars")
+    rating = _float_detail(option, "guest_rating")
+    provider = option.source_provider or ""
+
+    if provider == "serpapi_google_hotels" and hotel_floor >= 5:
+        if stars and stars >= 5 and rating and rating >= 4.5:
+            return 5.0
+        if rating and rating >= 4.7:
+            return 4.5
+        if stars and stars >= 5:
+            return 4.0
+        return rating or 0
+
+    if stars:
+        return stars
+    if rating and rating >= 4.7:
+        return 4.5
+    if rating and rating >= 4.4:
+        return 4.0
+    return rating or 0
 
 
 def _discovery_sort_key(option: BookingOption) -> tuple:

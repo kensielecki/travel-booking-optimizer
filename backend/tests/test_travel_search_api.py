@@ -138,3 +138,32 @@ def test_discover_endpoint_builds_open_destination_packages(monkeypatch) -> None
     assert first_option["details"]["kind"] == "trip_package"
     assert first_option["details"]["destination"]
     assert first_option["details"]["constraint_fit"] in {"exact", "near_miss", "weak"}
+
+
+def test_discover_filters_weak_google_hotel_five_star_claim(monkeypatch) -> None:
+    monkeypatch.setenv("SERPAPI_API_KEY", "")
+    monkeypatch.delenv("DUFFEL_API_TOKEN", raising=False)
+    monkeypatch.delenv("LITEAPI_API_KEY", raising=False)
+    monkeypatch.delenv("LITEAPI_ENV", raising=False)
+    monkeypatch.delenv("LITEAPI_PRODUCTION_API_KEY", raising=False)
+    monkeypatch.delenv("KIWI_TEQUILA_API_KEY", raising=False)
+    monkeypatch.delenv("AMADEUS_CLIENT_ID", raising=False)
+    monkeypatch.delenv("AMADEUS_CLIENT_SECRET", raising=False)
+
+    from app.core.trip_discovery import _hotel_is_usable
+    from app.models.domain import BookingOption
+
+    weak_google_hotel = BookingOption(
+        label="Blue Heron Cottages via Google Hotels",
+        booking_type="cash",
+        merchant="Google Hotels",
+        cash_price_usd=788,
+        source_provider="serpapi_google_hotels",
+        source_environment="production",
+        details={"kind": "hotel", "stars": 5, "guest_rating": 4.1},
+    )
+
+    assert not _hotel_is_usable(
+        weak_google_hotel,
+        {"hotel_min_stars": 5, "include_near_misses": True},
+    )

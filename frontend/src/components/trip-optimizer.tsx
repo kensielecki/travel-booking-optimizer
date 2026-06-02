@@ -107,7 +107,7 @@ export function TripOptimizer({
     ? groupedRecommendations.fullTripPaths
     : groupedRecommendations.standalone;
   const selectedOption = rankedOptions[0] ?? null;
-  const comparisonOptions = rankedOptions.slice(0, 3);
+  const comparisonOptions = rankedOptions.slice(0, 10);
   const discoverySummary = response ? getDiscoverySummary(response) : null;
 
   const normalizedBudget = useMemo(() => {
@@ -207,7 +207,7 @@ export function TripOptimizer({
           ],
           ...(discoveryMode
             ? {
-                max_destinations: 5,
+                max_destinations: 10,
                 include_near_misses: true,
               }
             : {}),
