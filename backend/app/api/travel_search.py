@@ -10,6 +10,7 @@ from app.core.live_travel_search import (
     search_live_trip,
 )
 from app.core.optimizer import optimize_trip
+from app.core.trip_discovery import discover_trip_options
 from app.models.domain import (
     BookingOption,
     BookingType,
@@ -17,6 +18,7 @@ from app.models.domain import (
     OptimizationResponse,
     Program,
     ProviderReadiness,
+    TripDiscoveryRequest,
     TravelOptimizationRequest,
     TravelSearchRequest,
     TravelSearchResponse,
@@ -77,6 +79,11 @@ async def optimize_live_search(request: TravelOptimizationRequest) -> Optimizati
             "warnings": search_response.warnings,
         }
     )
+
+
+@router.post("/discover", response_model=OptimizationResponse)
+async def discover_live_trip(request: TripDiscoveryRequest) -> OptimizationResponse:
+    return discover_trip_options(request)
 
 
 def _apply_offer_value(options: list[BookingOption], request: TravelOptimizationRequest) -> list[BookingOption]:

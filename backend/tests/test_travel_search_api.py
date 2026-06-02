@@ -100,3 +100,41 @@ def test_provider_readiness_endpoint_does_not_run_searches(monkeypatch) -> None:
     assert providers["duffel"]["environment"] == "production"
     assert providers["liteapi_hotels"]["environment"] == "production"
     assert providers["google_maps"]["category"] == "location"
+
+
+def test_discover_endpoint_builds_open_destination_packages(monkeypatch) -> None:
+    monkeypatch.delenv("DUFFEL_API_TOKEN", raising=False)
+    monkeypatch.delenv("SERPAPI_API_KEY", raising=False)
+    monkeypatch.delenv("LITEAPI_API_KEY", raising=False)
+    monkeypatch.delenv("LITEAPI_ENV", raising=False)
+    monkeypatch.delenv("LITEAPI_PRODUCTION_API_KEY", raising=False)
+    monkeypatch.delenv("KIWI_TEQUILA_API_KEY", raising=False)
+    monkeypatch.delenv("AMADEUS_CLIENT_ID", raising=False)
+    monkeypatch.delenv("AMADEUS_CLIENT_SECRET", raising=False)
+
+    response = client.post(
+        "/travel-search/discover",
+        json={
+            "search": {
+                "user_id": "11111111-1111-4111-8111-111111111111",
+                "raw_intent": "Find me a 5 star hotel under $500 a night and I do not want to fly more than 3 hours.",
+                "origin": "SFO",
+                "destination": "Open destination",
+                "departure_date": "2026-07-24",
+                "return_date": "2026-07-26",
+                "check_in_date": "2026-07-24",
+                "check_out_date": "2026-07-26",
+                "budget_usd": 2000,
+            },
+            "max_destinations": 2,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["recommendations"]
+    first_option = payload["recommendations"][0]["option"]
+    assert first_option["source_provider"] == "trip_discovery"
+    assert first_option["details"]["kind"] == "trip_package"
+    assert first_option["details"]["destination"]
+    assert first_option["details"]["constraint_fit"] in {"exact", "near_miss", "weak"}

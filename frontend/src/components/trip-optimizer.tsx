@@ -175,7 +175,8 @@ export function TripOptimizer({
     ].filter(Boolean);
 
     try {
-      const apiResponse = await fetch(`${apiUrl}/travel-search/optimize`, {
+      const discoveryMode = shouldUseDiscoveryMode(intent, destination);
+      const apiResponse = await fetch(`${apiUrl}/travel-search/${discoveryMode ? "discover" : "optimize"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -183,7 +184,7 @@ export function TripOptimizer({
             user_id: userId,
             raw_intent: constraints.length ? `${intent.trim()} Constraints: ${constraints.join("; ")}.` : intent.trim(),
             origin: origin.trim() || undefined,
-            destination: destination.trim() || undefined,
+            destination: discoveryMode ? "Open destination discovery" : destination.trim() || undefined,
             departure_date: departureDate || undefined,
             return_date: returnDate || undefined,
             check_in_date: departureDate || undefined,
@@ -203,6 +204,12 @@ export function TripOptimizer({
               valid_through: "2026-06-15",
             },
           ],
+          ...(discoveryMode
+            ? {
+                max_destinations: 5,
+                include_near_misses: true,
+              }
+            : {}),
         }),
       });
 
@@ -492,6 +499,31 @@ export function TripOptimizer({
       </section>
     </main>
   );
+}
+
+function shouldUseDiscoveryMode(intent: string, destination: string) {
+  const text = intent.toLowerCase();
+  const destinationText = destination.trim().toLowerCase();
+  if (!destinationText || destinationText.includes("open") || destinationText.includes("any")) {
+    return true;
+  }
+
+  const discoverySignals = [
+    "anywhere",
+    "any destination",
+    "somewhere",
+    "find me",
+    "where should",
+    "under 3 hours",
+    "under three hours",
+    "fly more than",
+    "drive more than",
+    "flight time",
+    "drive time",
+  ];
+  const hasDiscoverySignal = discoverySignals.some((signal) => text.includes(signal));
+  const hasSpecificDestination = /\b(nyc|new york|san diego|los angeles|las vegas|seattle|portland|phoenix|palm springs)\b/.test(text);
+  return hasDiscoverySignal && !hasSpecificDestination;
 }
 
 function PreferenceField({ label, children }: { label: string; children: React.ReactNode }) {

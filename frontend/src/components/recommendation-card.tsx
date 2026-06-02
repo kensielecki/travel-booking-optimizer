@@ -196,10 +196,20 @@ function ProviderDetailSection({ option }: { option: Recommendation["option"] })
       </div>
 
       {kind === "trip_package" ? (
-        <div className="mt-2 grid gap-3 md:grid-cols-2">
-          {packageFlight ? <LegDetailCard title="Flight" leg={packageFlight} /> : null}
-          {packageHotel ? <LegDetailCard title="Hotel" leg={packageHotel} /> : null}
-        </div>
+        <>
+          <DetailRows
+            rows={compactRows([
+              ["Destination", stringValue(details.destination)],
+              ["Region", stringValue(details.region)],
+              ["Constraint fit", stringValue(details.constraint_fit)?.replaceAll("_", " ")],
+              ["Travel time", numberValue(details.travel_minutes) === null ? undefined : `${numberValue(details.travel_minutes)} min`],
+            ])}
+          />
+          <div className="mt-2 grid gap-3 md:grid-cols-2">
+            {packageFlight ? <LegDetailCard title="Flight" leg={packageFlight} /> : null}
+            {packageHotel ? <LegDetailCard title="Hotel" leg={packageHotel} /> : null}
+          </div>
+        </>
       ) : (
         <StandaloneDetailCard details={details} bookingUrl={option.booking_url ?? null} />
       )}
