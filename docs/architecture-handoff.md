@@ -1,6 +1,6 @@
 # Travel Booking Optimizer Architecture Handoff
 
-Last updated: 2026-06-01
+Last updated: 2026-06-02
 
 ## Latest Session Notes
 
@@ -39,6 +39,7 @@ Last updated: 2026-06-01
 - 2026-05-29: Refreshed the frontend visual direction toward a slick minimalist workspace: removed the photographic background, added a crisper sticky top bar, widened the work area, tightened cards/forms, and introduced restrained teal/blue/orange accents.
 - 2026-05-29: Changed local `.env` loading to override process environment on server restart, so provider key swaps are reflected reliably after restarting FastAPI.
 - 2026-06-01: Product decision: keep Crossmint and Lobster Cash as the preferred future infrastructure direction for supervised agent payments and scoped virtual-card execution. They are a payment/checkout layer, not a live travel inventory source, and should only be introduced after explicit booking-review and approval flows exist.
+- 2026-06-02: Added a lightweight brand system for Travel Booking Optimizer. The app now uses a custom route/payment intelligence mark instead of the generic plane icon, with brand assets in `frontend/public/brand/` and brand direction documented in `docs/brand-guidelines.md`.
 
 ## Project Location
 

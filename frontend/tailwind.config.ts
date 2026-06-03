@@ -12,6 +12,7 @@ const config: Config = {
         signal: "#ff6b35",
         cobalt: "#2563eb",
         night: "#171a21",
+        premium: "#c9a44c",
       },
     },
   },

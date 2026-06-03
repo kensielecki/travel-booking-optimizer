@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Loader2,
-  Plane,
   Play,
   Search,
   SlidersHorizontal,
@@ -11,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { AccountBalanceEditor } from "@/components/account-balance-editor";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { ClearCapturedData } from "@/components/clear-captured-data";
 import { RecommendationCard } from "@/components/recommendation-card";
 import { dollars, points } from "@/lib/format";
@@ -237,9 +237,7 @@ export function TripOptimizer({
       <section className="mx-auto min-h-[calc(100vh-2.5rem)] max-w-[1540px] overflow-hidden rounded-2xl border border-line bg-white/70 shadow-[0_24px_70px_rgba(27,39,60,0.12)]">
         <header className="flex min-h-20 flex-wrap items-center justify-between gap-4 border-b border-line bg-white/90 px-5 py-4 backdrop-blur md:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-night text-white">
-              <Plane size={21} aria-hidden="true" />
-            </div>
+            <BrandMark />
             <div>
               <p className="text-base font-semibold leading-tight text-ink">Travel Booking Optimizer</p>
               <p className="text-sm text-slate-500">Search, compare, decide</p>
