@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  ExternalLink,
+  Home,
   Loader2,
   Search,
   SlidersHorizontal,
@@ -102,6 +104,13 @@ export function TripOptimizer({
     : groupedRecommendations.standalone;
   const comparisonOptions = rankedOptions.slice(0, 10);
   const discoverySummary = response ? getDiscoverySummary(response) : null;
+  const airbnbUrl = buildAirbnbSearchUrl({
+    destination,
+    intent,
+    departureDate,
+    returnDate,
+    budget,
+  });
 
   const normalizedBudget = useMemo(() => {
     const parsed = Number(budget.replace(/[$,]/g, ""));
@@ -338,6 +347,8 @@ export function TripOptimizer({
               <SearchField label="Arrival / travel-time preference" value={arrivalWindow} onChange={setArrivalWindow} placeholder="Arrive before midday, flight under 3 hours" />
               <ProgramSelector selectedPrograms={selectedPrograms} onToggle={toggleProgram} />
             </div>
+
+            <ManualComparePanel airbnbUrl={airbnbUrl} />
           </form>
 
           <section className="mt-5">
@@ -386,6 +397,100 @@ export function TripOptimizer({
       </section>
     </main>
   );
+}
+
+function ManualComparePanel({ airbnbUrl }: { airbnbUrl: string | null }) {
+  return (
+    <section className="mt-4 rounded-xl border border-line bg-surface/60 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent">
+            <Home size={18} aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase text-slate-500">Manual vacation-rental compare</p>
+            <p className="mt-1 text-sm leading-5 text-slate-700">
+              Open Airbnb as a user-driven verification source. We do not automate Airbnb login, scrape result pages, or book from this flow.
+            </p>
+          </div>
+        </div>
+        {airbnbUrl ? (
+          <a
+            href={airbnbUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-cobalt/20 bg-cobalt/10 px-3 text-xs font-bold text-blue-800"
+          >
+            Open Airbnb search
+            <ExternalLink size={14} aria-hidden="true" />
+          </a>
+        ) : (
+          <span className="inline-flex h-9 items-center rounded-md border border-line bg-white px-3 text-xs font-bold text-slate-500">
+            Add destination
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function buildAirbnbSearchUrl({
+  destination,
+  intent,
+  departureDate,
+  returnDate,
+  budget,
+}: {
+  destination: string;
+  intent: string;
+  departureDate: string;
+  returnDate: string;
+  budget: string;
+}) {
+  const query = destination.trim() || inferDestinationFromIntent(intent);
+  if (!query) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  if (departureDate) {
+    params.set("checkin", departureDate);
+  }
+  if (returnDate) {
+    params.set("checkout", returnDate);
+  }
+  params.set("adults", "1");
+
+  const nightlyBudget = Number(budget.replace(/[$,]/g, ""));
+  if (Number.isFinite(nightlyBudget) && nightlyBudget > 0) {
+    params.set("price_max", String(Math.round(nightlyBudget)));
+  }
+
+  const path = encodeURIComponent(query).replace(/%20/g, "-");
+  const suffix = params.toString();
+  return `https://www.airbnb.com/s/${path}/homes${suffix ? `?${suffix}` : ""}`;
+}
+
+function inferDestinationFromIntent(intent: string) {
+  const text = intent.toLowerCase();
+  const knownDestinations = [
+    ["new york", "New York"],
+    ["nyc", "New York"],
+    ["san diego", "San Diego"],
+    ["los angeles", "Los Angeles"],
+    ["las vegas", "Las Vegas"],
+    ["seattle", "Seattle"],
+    ["portland", "Portland"],
+    ["phoenix", "Phoenix"],
+    ["palm springs", "Palm Springs"],
+    ["london", "London"],
+    ["paris", "Paris"],
+    ["bangkok", "Bangkok"],
+    ["singapore", "Singapore"],
+    ["bali", "Bali"],
+  ] as const;
+
+  return knownDestinations.find(([token]) => text.includes(token))?.[1] ?? "";
 }
 
 function shouldUseDiscoveryMode(intent: string, destination: string) {

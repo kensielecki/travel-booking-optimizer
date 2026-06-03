@@ -43,6 +43,7 @@ Last updated: 2026-06-02
 - 2026-06-03: Expanded trip discovery beyond the original Bay Area candidate list. Discovery now detects Bay Area/default, United States, Europe, Southeast Asia, and global/international scopes, then searches a capped curated destination catalog rather than every possible destination.
 - 2026-06-03: Added a discovery control layer. Each discovery request now builds a plan with scope, candidate-pool size, matched candidates, selected candidates, provider-call budget, estimated provider calls, and skipped candidate count. `DISCOVERY_PROVIDER_CALL_BUDGET` can cap live discovery breadth from environment config.
 - 2026-06-03: Added structured constraint-fit checks to trip discovery results. Expanded itinerary cards now show per-constraint pass/near-miss/fail/unknown states for travel time, hotel class, nightly price, and guest rating when those constraints/signals exist.
+- 2026-06-03: Added a manual vacation-rental compare path. The frontend can generate an Airbnb search link from the current trip context, but Airbnb remains a user-driven verification source rather than a logged-in browser automation or scraping provider.
 
 ## Project Location
 

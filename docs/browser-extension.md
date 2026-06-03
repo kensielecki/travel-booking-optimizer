@@ -19,6 +19,7 @@ The V0 Chrome extension is a local capture companion for the optimizer backend.
 - It does not replay sessions.
 - It does not run server-side browser automation.
 - It does not make redemptions or transactions.
+- It does not automate logged-in Airbnb searches or scrape Airbnb result pages.
 
 ## Local Setup
 
@@ -104,6 +105,7 @@ The extension sends the same normalized shape as manual ingestion:
 ## Next Improvements
 
 - Add per-program extractors for Amex MR, Chase UR, United, Hilton, Delta, and Marriott.
+- Add a user-reviewed vacation-rental capture shape for manually opened Airbnb/VRBO pages, limited to visible title, URL, price, rating, fees, and cancellation text.
 - Store local extraction confidence scores.
 - Add an extension options page for API URL and user profile selection.
 - Add a backend endpoint dedicated to browser extension ingestion once persistence is wired.
