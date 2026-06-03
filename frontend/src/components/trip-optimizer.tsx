@@ -54,20 +54,17 @@ export function TripOptimizer({
   initialDemo = null,
   initialIngestionState = null,
 }: TripOptimizerProps) {
-  const [intent, setIntent] = useState(
-    initialDemo?.intent.raw_intent ??
-      "Weekend trip to NYC using United + Hilton with a ~$2,000 equivalent budget.",
-  );
-  const [budget, setBudget] = useState(String(initialDemo?.intent.budget_usd ?? 2000));
-  const [destination, setDestination] = useState(initialDemo?.intent.destination ?? "NYC");
-  const [origin, setOrigin] = useState("SFO");
-  const [departureDate, setDepartureDate] = useState("2026-07-24");
-  const [returnDate, setReturnDate] = useState("2026-07-26");
+  const [intent, setIntent] = useState(initialDemo?.intent.raw_intent ?? "");
+  const [budget, setBudget] = useState(initialDemo?.intent.budget_usd ? String(initialDemo.intent.budget_usd) : "");
+  const [destination, setDestination] = useState(initialDemo?.intent.destination ?? "");
+  const [origin, setOrigin] = useState("");
+  const [departureDate, setDepartureDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
   const [rankingMode, setRankingMode] = useState<RankingMode>("balanced");
-  const [selectedPrograms, setSelectedPrograms] = useState<Program[]>(["united", "hilton", "amex_mr"]);
-  const [directOnly, setDirectOnly] = useState(true);
-  const [arrivalWindow, setArrivalWindow] = useState("Arrive before midday");
-  const [hotelPreference, setHotelPreference] = useState("4 star or higher, within 20 minutes");
+  const [selectedPrograms, setSelectedPrograms] = useState<Program[]>([]);
+  const [directOnly, setDirectOnly] = useState(false);
+  const [arrivalWindow, setArrivalWindow] = useState("");
+  const [hotelPreference, setHotelPreference] = useState("");
   const [response, setResponse] = useState<OptimizationResponse | null>(initialDemo);
   const [providerReadiness, setProviderReadiness] = useState<ProviderReadiness[]>([]);
   const [ingestionState, setIngestionState] = useState<IngestionState | null>(initialIngestionState);
@@ -116,9 +113,8 @@ export function TripOptimizer({
 
     async function loadInitialData() {
       try {
-        const [readinessResponse, demoResponse, ingestionResponse] = await Promise.all([
+        const [readinessResponse, ingestionResponse] = await Promise.all([
           fetch(`${apiUrl}/travel-search/provider-readiness`),
-          initialDemo ? Promise.resolve(null) : fetch(`${apiUrl}/demo/nyc-weekend`),
           initialIngestionState ? Promise.resolve(null) : fetch(`${apiUrl}/ingestion/state/${userId}`),
         ]);
 
@@ -128,14 +124,6 @@ export function TripOptimizer({
 
         if (readinessResponse.ok) {
           setProviderReadiness((await readinessResponse.json()) as ProviderReadiness[]);
-        }
-
-        if (demoResponse?.ok) {
-          const demo = (await demoResponse.json()) as OptimizationResponse;
-          setResponse(demo);
-          setIntent(demo.intent.raw_intent);
-          setBudget(String(demo.intent.budget_usd));
-          setDestination(demo.intent.destination ?? "NYC");
         }
 
         if (ingestionResponse?.ok) {
@@ -271,6 +259,7 @@ export function TripOptimizer({
                     className="mt-1 min-h-28 w-full resize-none rounded-xl border border-line bg-surface/50 p-3 text-base leading-6 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/10"
                     value={intent}
                     onChange={(event) => setIntent(event.target.value)}
+                    placeholder="Example: Find me a 4 or 5 star hotel for a weekend trip under $500/night, with direct flights under 3 hours."
                   />
                 </label>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -300,11 +289,11 @@ export function TripOptimizer({
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
-              <SearchField label="From" value={origin} onChange={setOrigin} />
-              <SearchField label="To / destination" value={destination} onChange={setDestination} />
+              <SearchField label="From" value={origin} onChange={setOrigin} placeholder="SFO" />
+              <SearchField label="To / destination" value={destination} onChange={setDestination} placeholder="NYC, San Diego, or open" />
               <DateField label="Depart" value={departureDate} onChange={setDepartureDate} />
               <DateField label="Return" value={returnDate} onChange={setReturnDate} />
-              <SearchField label="Budget" value={budget} onChange={setBudget} />
+              <SearchField label="Budget" value={budget} onChange={setBudget} placeholder="2000" />
               <button
                 type="submit"
                 disabled={isOptimizing}
@@ -316,7 +305,7 @@ export function TripOptimizer({
             </div>
 
             <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_210px]">
-              <SearchField label="Hotel details" value={hotelPreference} onChange={setHotelPreference} />
+              <SearchField label="Hotel details" value={hotelPreference} onChange={setHotelPreference} placeholder="4 star or higher, near Midtown" />
               <label className="block rounded-xl border border-line bg-surface/60 px-3 py-2">
                 <span className="text-xs font-bold uppercase text-slate-500">Ranking</span>
                 <select
@@ -346,7 +335,7 @@ export function TripOptimizer({
             </div>
 
             <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <SearchField label="Arrival / travel-time preference" value={arrivalWindow} onChange={setArrivalWindow} />
+              <SearchField label="Arrival / travel-time preference" value={arrivalWindow} onChange={setArrivalWindow} placeholder="Arrive before midday, flight under 3 hours" />
               <ProgramSelector selectedPrograms={selectedPrograms} onToggle={toggleProgram} />
             </div>
           </form>
@@ -622,10 +611,12 @@ function SearchField({
   label,
   value,
   onChange,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="block rounded-xl border border-line bg-surface/60 px-3 py-2">
@@ -634,6 +625,7 @@ function SearchField({
         className="mt-1 w-full bg-transparent text-base font-semibold outline-none"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
       />
     </label>
   );
