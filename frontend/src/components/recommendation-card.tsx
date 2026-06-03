@@ -268,7 +268,7 @@ function StandaloneDetailCard({
     <div className="mt-2 rounded-md bg-white p-3">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm leading-5 text-slate-700">
-          {bookingUrl ? "Use the provider handoff link to inspect current availability and final checkout rules." : "Provider did not supply a direct booking link for this result yet."}
+          {bookingUrl ? "Open the source link to verify current availability, price, and final checkout rules." : "Provider did not supply an open verification link for this result yet."}
         </p>
         {bookingUrl ? <BookingLink href={bookingUrl} short /> : null}
       </div>

@@ -942,6 +942,7 @@ def _duffel_offer_to_option(offer: dict, search: TravelSearchRequest) -> Booking
         source_environment="sandbox" if os.getenv("DUFFEL_API_TOKEN", "").startswith("duffel_test_") else "production",
         provider_confidence=0.55 if os.getenv("DUFFEL_API_TOKEN", "").startswith("duffel_test_") else 0.9,
         provider_reference=offer.get("id"),
+        booking_url=_google_flights_search_url(search),
         details={
             "kind": "flight",
             "currency": currency,
@@ -1173,7 +1174,7 @@ def _liteapi_hotel_to_option(hotel_result: dict, hotel_index: dict[str, dict]) -
         source_environment=environment,
         provider_confidence=0.55 if environment == "sandbox" else 0.85,
         provider_reference=str(rate.get("rateId") or rate.get("id") or hotel_id) if (rate.get("rateId") or rate.get("id") or hotel_id) else None,
-        booking_url=hotel.get("url") or hotel_result.get("url"),
+        booking_url=hotel.get("url") or hotel_result.get("url") or _google_hotels_search_url(name),
         details={
             "kind": "hotel",
             "hotel_id": hotel_id,
