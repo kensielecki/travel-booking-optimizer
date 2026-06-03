@@ -205,6 +205,7 @@ function ProviderDetailSection({ option }: { option: Recommendation["option"] })
               ["Travel time", numberValue(details.travel_minutes) === null ? undefined : `${numberValue(details.travel_minutes)} min`],
             ])}
           />
+          <ConstraintChecks checks={arrayValue(details.constraint_checks)} />
           <div className="mt-2 grid gap-3 md:grid-cols-2">
             {packageFlight ? <LegDetailCard title="Flight" leg={packageFlight} /> : null}
             {packageHotel ? <LegDetailCard title="Hotel" leg={packageHotel} /> : null}
@@ -215,6 +216,52 @@ function ProviderDetailSection({ option }: { option: Recommendation["option"] })
       )}
     </section>
   );
+}
+
+function ConstraintChecks({ checks }: { checks: unknown[] }) {
+  const parsedChecks = checks
+    .map((check) => recordValue(check))
+    .filter((check): check is Record<string, unknown> => Boolean(check));
+
+  if (!parsedChecks.length) {
+    return null;
+  }
+
+  return (
+    <section className="mt-3 rounded-md border border-line bg-white p-3">
+      <p className="text-xs font-semibold uppercase text-signal">Constraint fit</p>
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        {parsedChecks.map((check) => {
+          const label = stringValue(check.label) ?? "Constraint";
+          const status = stringValue(check.status) ?? "unknown";
+          return (
+            <div key={`${label}-${stringValue(check.detail)}`} className="rounded-md border border-line bg-surface/80 p-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-ink">{label}</p>
+                <ConstraintBadge status={status} />
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{stringValue(check.detail) ?? "No detail supplied."}</p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ConstraintBadge({ status }: { status: string }) {
+  const normalized = status.toLowerCase();
+  const classes =
+    normalized === "pass"
+      ? "border-accent/25 bg-accent/10 text-teal-800"
+      : normalized === "near_miss"
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : normalized === "fail"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-line bg-white text-slate-600";
+  const label = normalized === "near_miss" ? "near miss" : normalized;
+
+  return <span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase ${classes}`}>{label}</span>;
 }
 
 function LegDetailCard({ title, leg }: { title: string; leg: Record<string, unknown> }) {

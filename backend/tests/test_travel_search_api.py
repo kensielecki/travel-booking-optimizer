@@ -138,6 +138,9 @@ def test_discover_endpoint_builds_open_destination_packages(monkeypatch) -> None
     assert first_option["details"]["kind"] == "trip_package"
     assert first_option["details"]["destination"]
     assert first_option["details"]["constraint_fit"] in {"exact", "near_miss", "weak"}
+    constraint_checks = first_option["details"]["constraint_checks"]
+    assert {check["label"] for check in constraint_checks} >= {"Flight time", "Hotel class", "Nightly price"}
+    assert all(check["status"] in {"pass", "near_miss", "fail", "unknown"} for check in constraint_checks)
 
 
 def test_discover_filters_weak_google_hotel_five_star_claim(monkeypatch) -> None:

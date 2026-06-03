@@ -413,8 +413,11 @@ def _build_discovery_package(
     )
     flight_minutes = _option_duration_minutes(flight) or candidate.flight_minutes
     hotel_stars = _hotel_quality(hotel, constraints.get("hotel_min_stars") or 5)
+    hotel_class_signal = hotel_stars if hotel_stars > 0 else None
+    hotel_rating = _float_detail(hotel, "guest_rating")
     nightly_rate = hotel.cash_price_usd
     constraint_fit = _constraint_fit(candidate, flight_minutes, hotel_stars, nightly_rate, constraints)
+    constraint_checks = _constraint_checks(candidate, flight_minutes, hotel_class_signal, hotel_rating, nightly_rate, constraints)
     travel_label = (
         f"{flight_minutes} min flight"
         if flight_minutes
@@ -440,6 +443,7 @@ def _build_discovery_package(
             "destination": candidate.city,
             "region": candidate.region,
             "constraint_fit": constraint_fit,
+            "constraint_checks": constraint_checks,
             "travel_minutes": flight_minutes or candidate.drive_minutes,
             "flight": {
                 "label": flight.label,
@@ -503,6 +507,70 @@ def _constraint_fit(
     if near_misses:
         return "near_miss"
     return "exact"
+
+
+def _constraint_checks(
+    candidate: CandidateDestination,
+    flight_minutes: int | None,
+    hotel_stars: float | None,
+    hotel_rating: float | None,
+    nightly_rate: float,
+    constraints: dict,
+) -> list[dict]:
+    max_flight = constraints.get("max_flight_minutes")
+    max_drive = constraints.get("max_drive_minutes")
+    max_nightly = constraints.get("max_nightly_rate_usd")
+    hotel_floor = constraints.get("hotel_min_stars") or 5
+    checks: list[dict] = []
+
+    if max_flight:
+        if flight_minutes is None:
+            checks.append(_constraint_check("Flight time", "unknown", f"Requested under {max_flight} min; provider did not supply duration."))
+        elif flight_minutes <= max_flight:
+            checks.append(_constraint_check("Flight time", "pass", f"{flight_minutes} min, within requested {max_flight} min."))
+        elif flight_minutes <= max_flight + 45:
+            checks.append(_constraint_check("Flight time", "near_miss", f"{flight_minutes} min, above requested {max_flight} min."))
+        else:
+            checks.append(_constraint_check("Flight time", "fail", f"{flight_minutes} min, above requested {max_flight} min."))
+
+    if max_drive and candidate.drive_minutes:
+        if candidate.drive_minutes <= max_drive:
+            checks.append(_constraint_check("Drive time", "pass", f"{candidate.drive_minutes} min, within requested {max_drive} min."))
+        elif candidate.drive_minutes <= max_drive + 45:
+            checks.append(_constraint_check("Drive time", "near_miss", f"{candidate.drive_minutes} min, above requested {max_drive} min."))
+        else:
+            checks.append(_constraint_check("Drive time", "fail", f"{candidate.drive_minutes} min, above requested {max_drive} min."))
+
+    if hotel_stars is None:
+        checks.append(_constraint_check("Hotel class", "unknown", f"Requested {hotel_floor} star; provider did not supply class."))
+    elif hotel_stars >= hotel_floor:
+        checks.append(_constraint_check("Hotel class", "pass", f"{hotel_stars:g} star equivalent, meets requested {hotel_floor} star."))
+    elif hotel_stars >= hotel_floor - 0.5:
+        checks.append(_constraint_check("Hotel class", "near_miss", f"{hotel_stars:g} star equivalent, near requested {hotel_floor} star."))
+    else:
+        checks.append(_constraint_check("Hotel class", "fail", f"{hotel_stars:g} star equivalent, below requested {hotel_floor} star."))
+
+    if max_nightly:
+        if nightly_rate <= max_nightly:
+            checks.append(_constraint_check("Nightly price", "pass", f"${nightly_rate:,.0f}, within requested ${max_nightly:,.0f}."))
+        elif nightly_rate <= max_nightly * 1.15:
+            checks.append(_constraint_check("Nightly price", "near_miss", f"${nightly_rate:,.0f}, above requested ${max_nightly:,.0f}."))
+        else:
+            checks.append(_constraint_check("Nightly price", "fail", f"${nightly_rate:,.0f}, above requested ${max_nightly:,.0f}."))
+
+    if hotel_rating is not None:
+        if hotel_rating >= 4.7:
+            checks.append(_constraint_check("Guest rating", "pass", f"{hotel_rating:g}, highly rated."))
+        elif hotel_rating >= 4.4:
+            checks.append(_constraint_check("Guest rating", "near_miss", f"{hotel_rating:g}, solid but not top tier."))
+        else:
+            checks.append(_constraint_check("Guest rating", "fail", f"{hotel_rating:g}, below high-rating threshold."))
+
+    return checks
+
+
+def _constraint_check(label: str, status: str, detail: str) -> dict:
+    return {"label": label, "status": status, "detail": detail}
 
 
 def _hotel_is_usable(option: BookingOption, constraints: dict) -> bool:
