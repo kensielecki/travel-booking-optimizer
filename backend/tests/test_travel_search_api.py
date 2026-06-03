@@ -199,3 +199,36 @@ def test_discovery_travel_time_constraint_filters_wider_catalog() -> None:
 
     assert "Phoenix" in cities
     assert "New York" not in cities
+
+
+def test_discovery_plan_caps_selected_candidates_by_provider_budget(monkeypatch) -> None:
+    from app.core.trip_discovery import _discovery_constraints, _discovery_plan
+    from app.models.domain import TravelSearchRequest, TripDiscoveryRequest
+
+    monkeypatch.delenv("DUFFEL_API_TOKEN", raising=False)
+    monkeypatch.delenv("SERPAPI_API_KEY", raising=False)
+    monkeypatch.delenv("LITEAPI_API_KEY", raising=False)
+    monkeypatch.delenv("LITEAPI_ENV", raising=False)
+    monkeypatch.delenv("LITEAPI_PRODUCTION_API_KEY", raising=False)
+    monkeypatch.delenv("KIWI_TEQUILA_API_KEY", raising=False)
+    monkeypatch.delenv("AMADEUS_CLIENT_ID", raising=False)
+    monkeypatch.delenv("AMADEUS_CLIENT_SECRET", raising=False)
+    monkeypatch.setenv("DISCOVERY_PROVIDER_CALL_BUDGET", "4")
+
+    request = TripDiscoveryRequest(
+        search=TravelSearchRequest(
+            user_id="11111111-1111-4111-8111-111111111111",
+            raw_intent="Find 5 star hotels across the US",
+            origin="SFO",
+            destination="Open destination",
+        ),
+        max_destinations=10,
+    )
+
+    plan = _discovery_plan(request, _discovery_constraints(request), "united_states")
+
+    assert plan.provider_call_budget == 4
+    assert plan.providers_per_candidate == 2
+    assert len(plan.selected_candidates) == 2
+    assert plan.estimated_provider_calls == 4
+    assert plan.skipped_candidate_count > 0

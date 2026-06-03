@@ -41,6 +41,7 @@ Last updated: 2026-06-02
 - 2026-06-01: Product decision: keep Crossmint and Lobster Cash as the preferred future infrastructure direction for supervised agent payments and scoped virtual-card execution. They are a payment/checkout layer, not a live travel inventory source, and should only be introduced after explicit booking-review and approval flows exist.
 - 2026-06-02: Added a lightweight brand system for Travel Booking Optimizer. The app now uses a custom route/payment intelligence mark instead of the generic plane icon, with brand assets in `frontend/public/brand/` and brand direction documented in `docs/brand-guidelines.md`.
 - 2026-06-03: Expanded trip discovery beyond the original Bay Area candidate list. Discovery now detects Bay Area/default, United States, Europe, Southeast Asia, and global/international scopes, then searches a capped curated destination catalog rather than every possible destination.
+- 2026-06-03: Added a discovery control layer. Each discovery request now builds a plan with scope, candidate-pool size, matched candidates, selected candidates, provider-call budget, estimated provider calls, and skipped candidate count. `DISCOVERY_PROVIDER_CALL_BUDGET` can cap live discovery breadth from environment config.
 
 ## Project Location
 

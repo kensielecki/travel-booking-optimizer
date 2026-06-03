@@ -200,6 +200,7 @@ class TripDiscoveryRequest(BaseModel):
     offers: List[Offer] = Field(default_factory=list)
     transfer_bonuses: List[TransferBonus] = Field(default_factory=list)
     max_destinations: int = Field(default=5, ge=1, le=12)
+    max_provider_calls: int = Field(default=24, ge=2, le=80)
     max_flight_minutes: Optional[int] = Field(default=None, ge=30, le=1440)
     max_drive_minutes: Optional[int] = Field(default=None, ge=30, le=720)
     max_nightly_rate_usd: Optional[float] = Field(default=None, gt=0)

@@ -418,6 +418,7 @@ function getDiscoverySummary(response: OptimizationResponse) {
     .map((recommendation) => recommendation.option)
     .filter((option) => option.source_provider === "trip_discovery");
   const searchedWarning = response.warnings.find((warning) => warning.startsWith("Discovery mode:"));
+  const planWarning = response.warnings.find((warning) => warning.startsWith("Discovery plan:"));
   const constraintWarning = response.warnings.find((warning) => warning.startsWith("Discovery constraints:"));
 
   if (!discoveryOptions.length && !searchedWarning) {
@@ -435,9 +436,12 @@ function getDiscoverySummary(response: OptimizationResponse) {
 
   return {
     searched,
+    plan: planWarning?.replace("Discovery plan:", "").replace(/\.$/, "").trim(),
     constraints: constraintWarning?.replace("Discovery constraints:", "").replace(/\.$/, "").trim(),
     matchedDestinations: destinations,
-    skipped: response.warnings.filter((warning) => warning.startsWith("Skipped ")).slice(0, 4),
+    skipped: response.warnings
+      .filter((warning) => warning.startsWith("Skipped ") || warning.startsWith("Discovery budget:"))
+      .slice(0, 5),
   };
 }
 
@@ -446,6 +450,7 @@ function DiscoverySummaryPanel({
 }: {
   summary: {
     searched?: string;
+    plan?: string;
     constraints?: string;
     matchedDestinations: string[];
     skipped: string[];
@@ -456,11 +461,17 @@ function DiscoverySummaryPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Discovery mode</p>
-          <h3 className="mt-1 text-base font-semibold text-ink">Multi-destination search from the Bay Area</h3>
+          <h3 className="mt-1 text-base font-semibold text-ink">Controlled multi-destination search</h3>
         </div>
         <StatusPill tone="blue">query plan</StatusPill>
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {summary.plan ? (
+          <div className="rounded-xl border border-line bg-surface/70 p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Plan</p>
+            <p className="mt-1 text-sm leading-5 text-slate-700">{summary.plan}</p>
+          </div>
+        ) : null}
         {summary.searched ? (
           <div className="rounded-xl border border-line bg-surface/70 p-3">
             <p className="text-xs font-bold uppercase text-slate-500">Searched</p>

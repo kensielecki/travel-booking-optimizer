@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from app.core.intent_parser import enrich_search_from_intent
-from app.core.live_travel_search import search_flights_across_providers, search_hotels_across_providers
+from app.core.live_travel_search import get_provider_readiness, search_flights_across_providers, search_hotels_across_providers
 from app.core.optimizer import optimize_trip
 from app.models.domain import (
     BookingOption,
@@ -25,6 +26,18 @@ class CandidateDestination:
     flight_minutes: int | None
     drive_minutes: int | None
     hotel_query: str
+
+
+@dataclass(frozen=True)
+class DiscoveryPlan:
+    scope: str
+    candidate_pool_count: int
+    matched_candidate_count: int
+    selected_candidates: list[CandidateDestination]
+    skipped_candidate_count: int
+    provider_call_budget: int
+    estimated_provider_calls: int
+    providers_per_candidate: int
 
 
 BAY_AREA_CANDIDATES = [
@@ -91,17 +104,23 @@ SOUTHEAST_ASIA_CANDIDATES = [
 def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse:
     constraints = _discovery_constraints(request)
     scope = _discovery_scope(request.search.raw_intent)
-    candidates = _candidate_destinations(constraints, request.max_destinations, request.include_near_misses, scope)
+    plan = _discovery_plan(request, constraints, scope)
+    candidates = plan.selected_candidates
     searched = ", ".join(candidate.city for candidate in candidates) if candidates else "none"
 
     options: list[BookingOption] = []
     provider_statuses: list[ProviderStatus] = []
     warnings: list[str] = [
         f"Discovery mode: searched {_scope_label(scope)} candidates: {searched}.",
+        _plan_summary(plan),
         _constraint_summary(constraints),
     ]
     if not candidates:
         warnings.append(f"No {_scope_label(scope)} destination candidates matched the requested travel-time constraints.")
+    elif plan.skipped_candidate_count:
+        warnings.append(
+            f"Discovery budget: held back {plan.skipped_candidate_count} matching candidates to stay within the live-search budget."
+        )
 
     for candidate in candidates:
         flight_search = _candidate_search(request.search, candidate, constraints, destination=candidate.airport)
@@ -152,7 +171,7 @@ def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse
     return optimization.model_copy(
         update={
             "provider_statuses": _dedupe_provider_statuses(provider_statuses),
-            "warnings": warnings[:12],
+            "warnings": warnings[:16],
         }
     )
 
@@ -214,6 +233,61 @@ def _candidate_pool(scope: str) -> list[CandidateDestination]:
     if scope == "global":
         return [*US_CANDIDATES, *EUROPE_CANDIDATES, *SOUTHEAST_ASIA_CANDIDATES]
     return BAY_AREA_CANDIDATES
+
+
+def _discovery_plan(request: TripDiscoveryRequest, constraints: dict, scope: str) -> DiscoveryPlan:
+    pool = _candidate_pool(scope)
+    matched = _candidate_destinations(
+        constraints,
+        max_destinations=len(pool),
+        include_near_misses=request.include_near_misses,
+        scope=scope,
+    )
+    providers_per_candidate = _configured_provider_call_count()
+    provider_call_budget = _provider_call_budget(request.max_provider_calls)
+    budget_limited_candidates = max(1, provider_call_budget // providers_per_candidate)
+    selected_count = min(request.max_destinations, budget_limited_candidates, len(matched))
+    selected = matched[:selected_count]
+
+    return DiscoveryPlan(
+        scope=scope,
+        candidate_pool_count=len(pool),
+        matched_candidate_count=len(matched),
+        selected_candidates=selected,
+        skipped_candidate_count=max(0, len(matched) - len(selected)),
+        provider_call_budget=provider_call_budget,
+        estimated_provider_calls=len(selected) * providers_per_candidate,
+        providers_per_candidate=providers_per_candidate,
+    )
+
+
+def _provider_call_budget(request_budget: int) -> int:
+    raw_budget = os.getenv("DISCOVERY_PROVIDER_CALL_BUDGET")
+    if raw_budget:
+        try:
+            return max(2, min(80, int(raw_budget)))
+        except ValueError:
+            return request_budget
+    return request_budget
+
+
+def _configured_provider_call_count() -> int:
+    readiness = get_provider_readiness()
+    flight_calls = sum(1 for provider in readiness if provider.category == "flight" and provider.configured)
+    hotel_calls = sum(1 for provider in readiness if provider.category == "hotel" and provider.configured)
+    return max(2, flight_calls + hotel_calls)
+
+
+def _plan_summary(plan: DiscoveryPlan) -> str:
+    return (
+        "Discovery plan: "
+        f"scope {_scope_label(plan.scope)}, "
+        f"candidate pool {plan.candidate_pool_count}, "
+        f"matched {plan.matched_candidate_count}, "
+        f"selected {len(plan.selected_candidates)}, "
+        f"provider call budget {plan.provider_call_budget}, "
+        f"estimated provider calls {plan.estimated_provider_calls}."
+    )
 
 
 def _candidate_destinations(
