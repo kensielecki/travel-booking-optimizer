@@ -17,7 +17,7 @@ The mark combines three ideas:
 
 - Route intelligence: a curved route line from origin to opportunity.
 - Travel inventory: a minimal wing/plane geometry.
-- Payment optimization: a small plus/cross node for value unlocked.
+- Payment optimization: a single teal value node that signals the chosen path.
 
 Use the square mark as the app icon, favicon, nav logo, extension icon base, and small product badge. Avoid adding tiny text inside the mark.
 
