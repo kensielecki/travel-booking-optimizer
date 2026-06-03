@@ -167,3 +167,35 @@ def test_discover_filters_weak_google_hotel_five_star_claim(monkeypatch) -> None
         weak_google_hotel,
         {"hotel_min_stars": 5, "include_near_misses": True},
     )
+
+
+def test_discovery_scope_expands_to_us_europe_and_southeast_asia() -> None:
+    from app.core.trip_discovery import _candidate_destinations, _discovery_scope
+
+    assert _discovery_scope("Find 5 star hotels across the US") == "united_states"
+    assert _discovery_scope("Find luxury hotels across Europe") == "europe"
+    assert _discovery_scope("Find beach hotels in Southeast Asia") == "southeast_asia"
+
+    constraints = {"include_near_misses": True, "hotel_min_stars": 5}
+    us_candidates = _candidate_destinations(constraints, 40, True, "united_states")
+    europe_candidates = _candidate_destinations(constraints, 20, True, "europe")
+    southeast_asia_candidates = _candidate_destinations(constraints, 20, True, "southeast_asia")
+
+    assert "New York" in {candidate.city for candidate in us_candidates}
+    assert "Paris" in {candidate.city for candidate in europe_candidates}
+    assert "Bangkok" in {candidate.city for candidate in southeast_asia_candidates}
+
+
+def test_discovery_travel_time_constraint_filters_wider_catalog() -> None:
+    from app.core.trip_discovery import _candidate_destinations
+
+    candidates = _candidate_destinations(
+        {"max_flight_minutes": 120, "hotel_min_stars": 5, "include_near_misses": True},
+        20,
+        True,
+        "united_states",
+    )
+    cities = {candidate.city for candidate in candidates}
+
+    assert "Phoenix" in cities
+    assert "New York" not in cities

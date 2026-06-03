@@ -41,17 +41,67 @@ BAY_AREA_CANDIDATES = [
     CandidateDestination("Lake Tahoe", "RNO", "Tahoe", 70, 230, "Lake Tahoe California"),
 ]
 
+US_CANDIDATES = [
+    *BAY_AREA_CANDIDATES,
+    CandidateDestination("Denver", "DEN", "Mountain West", 150, None, "Denver Colorado"),
+    CandidateDestination("Salt Lake City", "SLC", "Mountain West", 115, None, "Salt Lake City Utah"),
+    CandidateDestination("Scottsdale", "PHX", "Arizona", 120, None, "Scottsdale Arizona"),
+    CandidateDestination("Santa Fe", "SAF", "Southwest", 150, None, "Santa Fe New Mexico"),
+    CandidateDestination("Austin", "AUS", "Texas", 210, None, "Austin Texas"),
+    CandidateDestination("Dallas", "DFW", "Texas", 210, None, "Dallas Texas"),
+    CandidateDestination("Chicago", "ORD", "Midwest", 250, None, "Chicago Illinois"),
+    CandidateDestination("Nashville", "BNA", "Southeast", 250, None, "Nashville Tennessee"),
+    CandidateDestination("New Orleans", "MSY", "Southeast", 255, None, "New Orleans Louisiana"),
+    CandidateDestination("Charleston", "CHS", "Southeast", 320, None, "Charleston South Carolina"),
+    CandidateDestination("Miami", "MIA", "Florida", 335, None, "Miami Florida"),
+    CandidateDestination("New York", "JFK", "Northeast", 330, None, "New York New York"),
+    CandidateDestination("Boston", "BOS", "Northeast", 340, None, "Boston Massachusetts"),
+    CandidateDestination("Washington DC", "DCA", "Northeast", 320, None, "Washington DC"),
+    CandidateDestination("Honolulu", "HNL", "Hawaii", 330, None, "Honolulu Hawaii"),
+    CandidateDestination("Kauai", "LIH", "Hawaii", 340, None, "Kauai Hawaii"),
+]
+
+EUROPE_CANDIDATES = [
+    CandidateDestination("London", "LHR", "United Kingdom", 620, None, "London England"),
+    CandidateDestination("Paris", "CDG", "France", 650, None, "Paris France"),
+    CandidateDestination("Amsterdam", "AMS", "Netherlands", 640, None, "Amsterdam Netherlands"),
+    CandidateDestination("Rome", "FCO", "Italy", 720, None, "Rome Italy"),
+    CandidateDestination("Barcelona", "BCN", "Spain", 700, None, "Barcelona Spain"),
+    CandidateDestination("Madrid", "MAD", "Spain", 680, None, "Madrid Spain"),
+    CandidateDestination("Lisbon", "LIS", "Portugal", 660, None, "Lisbon Portugal"),
+    CandidateDestination("Zurich", "ZRH", "Switzerland", 690, None, "Zurich Switzerland"),
+    CandidateDestination("Copenhagen", "CPH", "Denmark", 665, None, "Copenhagen Denmark"),
+    CandidateDestination("Athens", "ATH", "Greece", 810, None, "Athens Greece"),
+]
+
+SOUTHEAST_ASIA_CANDIDATES = [
+    CandidateDestination("Singapore", "SIN", "Southeast Asia", 1030, None, "Singapore"),
+    CandidateDestination("Bangkok", "BKK", "Thailand", 1020, None, "Bangkok Thailand"),
+    CandidateDestination("Phuket", "HKT", "Thailand", 1080, None, "Phuket Thailand"),
+    CandidateDestination("Bali", "DPS", "Indonesia", 1120, None, "Bali Indonesia"),
+    CandidateDestination("Kuala Lumpur", "KUL", "Malaysia", 1050, None, "Kuala Lumpur Malaysia"),
+    CandidateDestination("Ho Chi Minh City", "SGN", "Vietnam", 1000, None, "Ho Chi Minh City Vietnam"),
+    CandidateDestination("Hanoi", "HAN", "Vietnam", 980, None, "Hanoi Vietnam"),
+    CandidateDestination("Manila", "MNL", "Philippines", 840, None, "Manila Philippines"),
+    CandidateDestination("Cebu", "CEB", "Philippines", 930, None, "Cebu Philippines"),
+    CandidateDestination("Siem Reap", "SAI", "Cambodia", 1040, None, "Siem Reap Cambodia"),
+]
+
 
 def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse:
     constraints = _discovery_constraints(request)
-    candidates = _candidate_destinations(constraints, request.max_destinations, request.include_near_misses)
+    scope = _discovery_scope(request.search.raw_intent)
+    candidates = _candidate_destinations(constraints, request.max_destinations, request.include_near_misses, scope)
+    searched = ", ".join(candidate.city for candidate in candidates) if candidates else "none"
 
     options: list[BookingOption] = []
     provider_statuses: list[ProviderStatus] = []
     warnings: list[str] = [
-        f"Discovery mode: searched Bay Area candidates: {', '.join(candidate.city for candidate in candidates)}.",
+        f"Discovery mode: searched {_scope_label(scope)} candidates: {searched}.",
         _constraint_summary(constraints),
     ]
+    if not candidates:
+        warnings.append(f"No {_scope_label(scope)} destination candidates matched the requested travel-time constraints.")
 
     for candidate in candidates:
         flight_search = _candidate_search(request.search, candidate, constraints, destination=candidate.airport)
@@ -131,12 +181,52 @@ def _constraint_summary(constraints: dict) -> str:
     return f"Discovery constraints: {', '.join(parts)}."
 
 
-def _candidate_destinations(constraints: dict, max_destinations: int, include_near_misses: bool) -> list[CandidateDestination]:
+def _discovery_scope(text: str) -> str:
+    normalized = text.lower()
+    if any(token in normalized for token in ["south east asia", "southeast asia", "sea asia", "thailand", "vietnam", "singapore", "bali"]):
+        return "southeast_asia"
+    if any(token in normalized for token in ["europe", "european", "france", "italy", "spain", "london", "paris"]):
+        return "europe"
+    if any(token in normalized for token in ["across the us", "across us", "united states", "usa", "u.s.", "america", "domestic"]):
+        return "united_states"
+    if any(token in normalized for token in ["anywhere", "global", "international"]):
+        return "global"
+    return "bay_area"
+
+
+def _scope_label(scope: str) -> str:
+    return {
+        "bay_area": "Bay Area",
+        "united_states": "United States",
+        "europe": "Europe",
+        "southeast_asia": "Southeast Asia",
+        "global": "global",
+    }.get(scope, "Bay Area")
+
+
+def _candidate_pool(scope: str) -> list[CandidateDestination]:
+    if scope == "united_states":
+        return US_CANDIDATES
+    if scope == "europe":
+        return EUROPE_CANDIDATES
+    if scope == "southeast_asia":
+        return SOUTHEAST_ASIA_CANDIDATES
+    if scope == "global":
+        return [*US_CANDIDATES, *EUROPE_CANDIDATES, *SOUTHEAST_ASIA_CANDIDATES]
+    return BAY_AREA_CANDIDATES
+
+
+def _candidate_destinations(
+    constraints: dict,
+    max_destinations: int,
+    include_near_misses: bool,
+    scope: str = "bay_area",
+) -> list[CandidateDestination]:
     max_flight = constraints.get("max_flight_minutes")
     max_drive = constraints.get("max_drive_minutes")
     scored: list[tuple[int, CandidateDestination]] = []
 
-    for candidate in BAY_AREA_CANDIDATES:
+    for candidate in _candidate_pool(scope):
         flight_fit = candidate.flight_minutes is not None and (max_flight is None or candidate.flight_minutes <= max_flight)
         drive_fit = candidate.drive_minutes is not None and (max_drive is None or candidate.drive_minutes <= max_drive)
         near_flight = candidate.flight_minutes is not None and max_flight is not None and candidate.flight_minutes <= max_flight + 45

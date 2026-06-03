@@ -40,6 +40,7 @@ Last updated: 2026-06-02
 - 2026-05-29: Changed local `.env` loading to override process environment on server restart, so provider key swaps are reflected reliably after restarting FastAPI.
 - 2026-06-01: Product decision: keep Crossmint and Lobster Cash as the preferred future infrastructure direction for supervised agent payments and scoped virtual-card execution. They are a payment/checkout layer, not a live travel inventory source, and should only be introduced after explicit booking-review and approval flows exist.
 - 2026-06-02: Added a lightweight brand system for Travel Booking Optimizer. The app now uses a custom route/payment intelligence mark instead of the generic plane icon, with brand assets in `frontend/public/brand/` and brand direction documented in `docs/brand-guidelines.md`.
+- 2026-06-03: Expanded trip discovery beyond the original Bay Area candidate list. Discovery now detects Bay Area/default, United States, Europe, Southeast Asia, and global/international scopes, then searches a capped curated destination catalog rather than every possible destination.
 
 ## Project Location
 

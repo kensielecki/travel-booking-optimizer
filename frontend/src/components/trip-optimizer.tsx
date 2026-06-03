@@ -431,7 +431,7 @@ function getDiscoverySummary(response: OptimizationResponse) {
         .filter((destination): destination is string => typeof destination === "string" && Boolean(destination.trim())),
     ),
   );
-  const searched = searchedWarning?.replace("Discovery mode: searched Bay Area candidates:", "").replace(/\.$/, "").trim();
+  const searched = searchedWarning?.replace(/^Discovery mode: searched .* candidates:/, "").replace(/\.$/, "").trim();
 
   return {
     searched,
