@@ -3,24 +3,21 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Loader2,
-  Play,
   Search,
   SlidersHorizontal,
-  WalletCards,
 } from "lucide-react";
 
 import { AccountBalanceEditor } from "@/components/account-balance-editor";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { ClearCapturedData } from "@/components/clear-captured-data";
 import { RecommendationCard } from "@/components/recommendation-card";
-import { dollars, points } from "@/lib/format";
+import { dollars } from "@/lib/format";
 import type {
   IngestionState,
   OptimizationResponse,
   Program,
   ProviderReadiness,
   RankingMode,
-  Recommendation,
 } from "@/lib/types";
 
 const PROGRAM_OPTIONS: Array<{ label: string; value: Program }> = [
@@ -106,7 +103,6 @@ export function TripOptimizer({
   const rankedOptions = groupedRecommendations.fullTripPaths.length
     ? groupedRecommendations.fullTripPaths
     : groupedRecommendations.standalone;
-  const selectedOption = rankedOptions[0] ?? null;
   const comparisonOptions = rankedOptions.slice(0, 10);
   const discoverySummary = response ? getDiscoverySummary(response) : null;
 
@@ -234,8 +230,8 @@ export function TripOptimizer({
 
   return (
     <main className="min-h-screen px-4 py-5 text-ink sm:px-6">
-      <section className="mx-auto min-h-[calc(100vh-2.5rem)] max-w-[1540px] overflow-hidden rounded-2xl border border-line bg-white/70 shadow-[0_24px_70px_rgba(27,39,60,0.12)]">
-        <header className="flex min-h-20 flex-wrap items-center justify-between gap-4 border-b border-line bg-white/90 px-5 py-4 backdrop-blur md:px-7">
+      <section className="mx-auto max-w-[1320px] overflow-hidden rounded-2xl border border-line bg-white/78 shadow-[0_24px_70px_rgba(27,39,60,0.12)]">
+        <header className="flex min-h-20 flex-wrap items-center justify-between gap-4 border-b border-line bg-white/95 px-5 py-4 backdrop-blur md:px-7">
           <div className="flex items-center gap-3">
             <BrandMark />
             <div>
@@ -261,54 +257,67 @@ export function TripOptimizer({
           </div>
         </header>
 
-        <section className="grid min-h-[760px] lg:grid-cols-[300px_minmax(0,1fr)_330px]">
-          <aside className="border-b border-line bg-white/55 p-5 lg:border-b-0 lg:border-r">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Preferences</p>
-            <h1 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.02em] text-ink">
-              Direct, early, premium enough.
-            </h1>
-
-            <form className="mt-4 space-y-3" onSubmit={optimize}>
-              <label className="block">
-                <span className="text-xs font-bold uppercase text-slate-500">Trip prompt</span>
-                <textarea
-                  className="mt-1 min-h-32 w-full resize-none rounded-xl border border-line bg-white p-3 text-sm leading-5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/10"
-                  value={intent}
-                  onChange={(event) => setIntent(event.target.value)}
-                />
-              </label>
-
-              <PreferenceField label="Direct only">
-                <label className="flex items-center justify-between gap-3">
-                  <strong>{directOnly ? "Yes" : "No"}</strong>
-                  <input
-                    type="checkbox"
-                    checked={directOnly}
-                    onChange={(event) => setDirectOnly(event.target.checked)}
-                    className="h-4 w-4 accent-teal-600"
+        <section className="bg-gradient-to-r from-[#f6f9fc] to-[#eef6f5] p-4 md:p-6">
+          <form className="rounded-2xl border border-line bg-white p-4 shadow-sm md:p-5" onSubmit={optimize}>
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Trip intent</p>
+                <h1 className="mt-2 max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.02em] text-ink">
+                  Describe the trip. Refine it like a normal travel search.
+                </h1>
+                <label className="mt-4 block">
+                  <span className="text-xs font-bold uppercase text-slate-500">Prompt</span>
+                  <textarea
+                    className="mt-1 min-h-28 w-full resize-none rounded-xl border border-line bg-surface/50 p-3 text-base leading-6 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/10"
+                    value={intent}
+                    onChange={(event) => setIntent(event.target.value)}
                   />
                 </label>
-              </PreferenceField>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SAMPLE_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => setIntent(prompt)}
+                      className="rounded-md border border-line bg-white px-3 py-2 text-left text-xs font-semibold leading-4 text-slate-600 transition hover:border-cobalt/40 hover:text-ink"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              <PreferenceField label="Arrive by">
-                <input
-                  className="w-full bg-transparent text-base font-semibold outline-none"
-                  value={arrivalWindow}
-                  onChange={(event) => setArrivalWindow(event.target.value)}
-                  aria-label="Arrival preference"
-                />
-              </PreferenceField>
+              <SearchContextPanel
+                connectedSourceCount={connectedSourceCount}
+                capturedCount={capturedCount}
+                capturedAccounts={capturedAccounts}
+                capturedOffers={capturedOffers}
+                ingestionState={ingestionState}
+                providerStatuses={providerStatuses}
+                apiUrl={apiUrl}
+                userId={userId}
+              />
+            </div>
 
-              <PreferenceField label="Hotel floor">
-                <input
-                  className="w-full bg-transparent text-sm font-semibold outline-none"
-                  value={hotelPreference}
-                  onChange={(event) => setHotelPreference(event.target.value)}
-                  aria-label="Hotel preference"
-                />
-              </PreferenceField>
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
+              <SearchField label="From" value={origin} onChange={setOrigin} />
+              <SearchField label="To / destination" value={destination} onChange={setDestination} />
+              <DateField label="Depart" value={departureDate} onChange={setDepartureDate} />
+              <DateField label="Return" value={returnDate} onChange={setReturnDate} />
+              <SearchField label="Budget" value={budget} onChange={setBudget} />
+              <button
+                type="submit"
+                disabled={isOptimizing}
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-night px-6 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isOptimizing ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                Search
+              </button>
+            </div>
 
-              <label className="block rounded-xl border border-line bg-white p-3">
+            <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_210px]">
+              <SearchField label="Hotel details" value={hotelPreference} onChange={setHotelPreference} />
+              <label className="block rounded-xl border border-line bg-surface/60 px-3 py-2">
                 <span className="text-xs font-bold uppercase text-slate-500">Ranking</span>
                 <select
                   className="mt-1 w-full bg-transparent text-base font-semibold outline-none"
@@ -322,76 +331,44 @@ export function TripOptimizer({
                   ))}
                 </select>
               </label>
+              <label className="flex min-h-14 items-center justify-between rounded-xl border border-line bg-surface/60 px-3 py-2">
+                <span>
+                  <span className="block text-xs font-bold uppercase text-slate-500">Direct flights</span>
+                  <strong className="text-base">{directOnly ? "Only direct" : "Allow stops"}</strong>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={directOnly}
+                  onChange={(event) => setDirectOnly(event.target.checked)}
+                  className="h-4 w-4 accent-teal-600"
+                />
+              </label>
+            </div>
 
-              <div className="rounded-xl border border-line bg-white p-3">
-                <span className="text-xs font-bold uppercase text-slate-500">Programs</span>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {PROGRAM_OPTIONS.map((program) => {
-                    const selected = selectedPrograms.includes(program.value);
-                    return (
-                      <button
-                        key={program.value}
-                        type="button"
-                        onClick={() => toggleProgram(program.value)}
-                        className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
-                          selected
-                            ? "border-accent bg-accent/10 text-teal-800"
-                            : "border-line bg-white text-slate-700"
-                        }`}
-                      >
-                        {program.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <SearchField label="Arrival / travel-time preference" value={arrivalWindow} onChange={setArrivalWindow} />
+              <ProgramSelector selectedPrograms={selectedPrograms} onToggle={toggleProgram} />
+            </div>
+          </form>
 
-              <button
-                type="submit"
-                disabled={isOptimizing}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-night px-4 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isOptimizing ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-                Build itinerary
-              </button>
-            </form>
-          </aside>
-
-          <section className="bg-gradient-to-r from-[#f6f9fc] to-[#eef6f5] p-5">
-            <form
-              className="grid gap-3 rounded-2xl border border-line bg-white p-3 shadow-sm md:grid-cols-[1fr_1fr_1fr_auto]"
-              onSubmit={optimize}
-            >
-              <SearchField label="Origin" value={origin} onChange={setOrigin} />
-              <SearchField label="Destination" value={destination} onChange={setDestination} />
-              <div className="grid grid-cols-2 gap-2">
-                <DateField label="Depart" value={departureDate} onChange={setDepartureDate} />
-                <DateField label="Return" value={returnDate} onChange={setReturnDate} />
-              </div>
-              <button
-                type="submit"
-                disabled={isOptimizing}
-                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-night px-5 text-sm font-bold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isOptimizing ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                Search
-              </button>
-            </form>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <section className="mt-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Itinerary options</p>
-                <h2 className="mt-1 text-xl font-semibold text-ink">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Suggested itineraries</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] text-ink">
                   {response
-                    ? "Ranked booking paths"
+                    ? "Best booking paths"
                     : connectedSourceCount
-                      ? "API connected. Ready to build a live itinerary."
+                      ? "Ready for a live itinerary search"
                       : "Connect the API to build a live itinerary"}
                 </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Expand an option to inspect flight, hotel, provider detail, and payment math.
+                </p>
               </div>
               <p className="text-sm text-slate-500">
                 {comparisonOptions.length
-                  ? `${comparisonOptions.length} best ${comparisonOptions.length === 1 ? "option" : "options"}`
+                  ? `${comparisonOptions.length} itinerary ${comparisonOptions.length === 1 ? "option" : "options"}`
                   : connectedSourceCount
                     ? `${connectedSourceCount} production sources ready`
                     : "Waiting for provider results"}
@@ -405,97 +382,17 @@ export function TripOptimizer({
             <div className="mt-4 space-y-3">
               {comparisonOptions.length ? (
                 comparisonOptions.map((recommendation, index) => (
-                  <ItineraryOption
+                  <RecommendationCard
                     key={`${recommendation.rank}-${recommendation.option.label}`}
                     recommendation={recommendation}
-                    rank={index + 1}
-                    origin={origin}
-                    destination={destination}
+                    displayRank={index + 1}
                   />
                 ))
               ) : (
                 <ConnectedEmptyState connectedSourceCount={connectedSourceCount} providerReadiness={providerReadiness} />
               )}
             </div>
-
-            {response ? (
-              <section className="mt-5 space-y-3">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Deep details</p>
-                    <p className="mt-1 text-sm text-slate-600">Expand any option to inspect booking math, provider notes, and ranking reasons.</p>
-                  </div>
-                  <p className="text-xs text-slate-500">{response.recommendations.length} total recommendations</p>
-                </div>
-                {response.recommendations.slice(0, 5).map((recommendation, index) => (
-                  <RecommendationCard
-                    key={`${recommendation.rank}-${recommendation.option.label}-detail`}
-                    recommendation={recommendation}
-                    displayRank={index + 1}
-                  />
-                ))}
-              </section>
-            ) : null}
           </section>
-
-          <aside className="border-t border-line bg-white/80 p-5 lg:border-l lg:border-t-0">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Booking path</p>
-            <h2 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.02em] text-ink">
-              Recommended payment stack
-            </h2>
-
-            <BookingPath recommendation={selectedOption} />
-
-            <section className="mt-4 rounded-2xl border border-line bg-white p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Captured data</p>
-                {capturedCount > 0 ? <ClearCapturedData apiUrl={apiUrl} userId={userId} /> : null}
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                {ingestionState?.last_run ? `Last ${ingestionState.last_run.status}` : "No capture yet"}
-              </p>
-
-              {capturedCount > 0 ? (
-                <div className="mt-3 space-y-3">
-                  {capturedAccounts.map((account) => (
-                    <div key={account.id} className="border-t border-line pt-3">
-                      <p className="text-sm font-semibold text-ink">{account.display_name}</p>
-                      <AccountBalanceEditor account={account} apiUrl={apiUrl} userId={userId} />
-                    </div>
-                  ))}
-
-                  {capturedOffers.slice(0, 4).map((offer) => (
-                    <div key={offer.id} className="border-t border-line pt-3">
-                      <p className="text-sm font-semibold text-ink">{offer.merchant}</p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {dollars(offer.value_usd)} value on {dollars(offer.min_spend_usd)} spend
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm leading-5 text-slate-600">
-                  Capture a visible rewards page with the Chrome extension to include balances and offers.
-                </p>
-              )}
-            </section>
-
-            {providerStatuses.length ? (
-              <section className="mt-4 rounded-2xl border border-line bg-white p-4">
-                <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Provider health</p>
-                <div className="mt-2 space-y-2">
-                  {providerStatuses.slice(0, 6).map((status) => (
-                    <div key={`${status.category}-${status.provider}`} className="flex items-center justify-between border-t border-line pt-2 first:border-t-0 first:pt-0">
-                      <span className="text-sm text-slate-600">{status.provider.replaceAll("_", " ")}</span>
-                      <strong className={status.status === "live" ? "text-sm text-teal-700" : "text-sm text-amber-700"}>
-                        {status.status}
-                      </strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </aside>
         </section>
       </section>
     </main>
@@ -610,11 +507,113 @@ function DiscoverySummaryPanel({
   );
 }
 
-function PreferenceField({ label, children }: { label: string; children: React.ReactNode }) {
+function SearchContextPanel({
+  connectedSourceCount,
+  capturedCount,
+  capturedAccounts,
+  capturedOffers,
+  ingestionState,
+  providerStatuses,
+  apiUrl,
+  userId,
+}: {
+  connectedSourceCount: number;
+  capturedCount: number;
+  capturedAccounts: IngestionState["accounts"];
+  capturedOffers: IngestionState["offers"];
+  ingestionState: IngestionState | null;
+  providerStatuses: OptimizationResponse["provider_statuses"];
+  apiUrl: string;
+  userId: string;
+}) {
   return (
-    <div className="rounded-xl border border-line bg-white p-3">
-      <span className="text-xs font-bold uppercase text-slate-500">{label}</span>
-      <div className="mt-1">{children}</div>
+    <aside className="rounded-xl border border-line bg-surface/60 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-extrabold uppercase tracking-wide text-signal">Search context</p>
+        <StatusPill tone={connectedSourceCount ? "green" : "blue"}>
+          {connectedSourceCount ? `${connectedSourceCount} sources` : "beta"}
+        </StatusPill>
+      </div>
+
+      <div className="mt-3 grid gap-2">
+        <div className="rounded-md bg-white p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase text-slate-500">Captured loyalty</p>
+              <p className="mt-1 text-sm font-semibold text-ink">
+                {capturedCount ? `${capturedCount} account/offer inputs` : "No capture yet"}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {ingestionState?.last_run ? `Last ${ingestionState.last_run.status}` : "Use the extension to add balances and offers."}
+              </p>
+            </div>
+            {capturedCount > 0 ? <ClearCapturedData apiUrl={apiUrl} userId={userId} /> : null}
+          </div>
+        </div>
+
+        {capturedAccounts.slice(0, 3).map((account) => (
+          <div key={account.id} className="rounded-md bg-white p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">{account.display_name}</p>
+            <AccountBalanceEditor account={account} apiUrl={apiUrl} userId={userId} />
+          </div>
+        ))}
+
+        {capturedOffers.slice(0, 2).map((offer) => (
+          <div key={offer.id} className="rounded-md bg-white p-3">
+            <p className="text-sm font-semibold text-ink">{offer.merchant}</p>
+            <p className="mt-1 text-xs text-slate-600">
+              {dollars(offer.value_usd)} value on {dollars(offer.min_spend_usd)} spend
+            </p>
+          </div>
+        ))}
+
+        {providerStatuses.length ? (
+          <div className="rounded-md bg-white p-3">
+            <p className="text-xs font-bold uppercase text-slate-500">Provider health</p>
+            <div className="mt-2 space-y-1">
+              {providerStatuses.slice(0, 3).map((status) => (
+                <div key={`${status.category}-${status.provider}`} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate text-slate-600">{status.provider.replaceAll("_", " ")}</span>
+                  <strong className={status.status === "live" ? "text-teal-700" : "text-amber-700"}>{status.status}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </aside>
+  );
+}
+
+function ProgramSelector({
+  selectedPrograms,
+  onToggle,
+}: {
+  selectedPrograms: Program[];
+  onToggle: (program: Program) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-line bg-surface/60 px-3 py-2">
+      <span className="text-xs font-bold uppercase text-slate-500">Programs</span>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {PROGRAM_OPTIONS.map((program) => {
+          const selected = selectedPrograms.includes(program.value);
+          return (
+            <button
+              key={program.value}
+              type="button"
+              onClick={() => onToggle(program.value)}
+              className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                selected
+                  ? "border-accent bg-accent/10 text-teal-800"
+                  : "border-line bg-white text-slate-700"
+              }`}
+            >
+              {program.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -676,99 +675,6 @@ function StatusPill({ children, tone }: { children: React.ReactNode; tone: "gree
   );
 }
 
-function ItineraryOption({
-  recommendation,
-  rank,
-  origin,
-  destination,
-}: {
-  recommendation: Recommendation;
-  rank: number;
-  origin: string;
-  destination: string;
-}) {
-  const option = recommendation.option;
-  const route = deriveRoute(option.label, origin, destination);
-  const confidence = Math.round(option.provider_confidence * 100);
-  const tagTone = rank === 1 ? "green" : option.booking_type === "points" || option.booking_type === "transfer" ? "orange" : "blue";
-
-  return (
-    <article className={`rounded-2xl border bg-white p-4 ${rank === 1 ? "border-cobalt/40 shadow-[0_0_0_3px_rgba(37,99,235,0.08)]" : "border-line"}`}>
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_150px]">
-        <div className="min-w-0">
-          <StatusPill tone={tagTone}>{rank === 1 ? "best path" : option.booking_type.replaceAll("_", " ")}</StatusPill>
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-3xl font-extrabold tracking-[-0.03em] text-ink">{route.from}</span>
-            <div className="h-0.5 min-w-16 flex-1 bg-gradient-to-r from-cobalt to-accent" />
-            <span className="text-3xl font-extrabold tracking-[-0.03em] text-ink">{route.to}</span>
-          </div>
-          <h3 className="mt-3 text-lg font-semibold leading-tight text-ink">{option.label}</h3>
-          <p className="mt-1 text-sm leading-5 text-slate-600">{option.merchant}</p>
-          <p className="mt-2 text-xs text-slate-500">
-            {option.source_environment} source · {confidence}% provider confidence · score {recommendation.score}
-          </p>
-          <div className="mt-3 grid h-2 overflow-hidden rounded-full bg-slate-100 md:w-4/5" style={{ gridTemplateColumns: "70% 30%" }}>
-            <span className="bg-accent" />
-            <span className="bg-cobalt" />
-          </div>
-        </div>
-        <div className="border-t border-line pt-3 md:border-l md:border-t-0 md:pl-4 md:pt-0">
-          <p className="text-xs font-bold uppercase text-slate-500">Effective cost</p>
-          <p className="mt-1 text-xl font-extrabold text-ink">{dollars(recommendation.out_of_pocket_usd)}</p>
-          <p className="text-sm text-slate-500">Save {dollars(recommendation.effective_savings_usd)}</p>
-          <p className="mt-3 text-xs font-semibold text-slate-600">
-            {recommendation.cents_per_point === null ? "Cash path" : `${recommendation.cents_per_point.toFixed(2)} cents per point`}
-          </p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function BookingPath({ recommendation }: { recommendation: Recommendation | null }) {
-  if (!recommendation) {
-    return (
-      <div className="mt-4 rounded-2xl border border-line bg-white p-4">
-        <StatusPill tone="blue">ready to search</StatusPill>
-        <p className="mt-4 text-sm leading-5 text-slate-600">
-          Run a search to generate the selected booking path, payment stack, and savings.
-        </p>
-      </div>
-    );
-  }
-
-  const option = recommendation.option;
-  const rows = [
-    ["Provider", option.source_provider?.replaceAll("_", " ") ?? "Unknown"],
-    ["Merchant", option.merchant],
-    ["Booking type", option.booking_type.replaceAll("_", " ")],
-    ["Points", option.points_used ? points(option.points_used) : "Save for later"],
-  ];
-
-  return (
-    <div className="mt-4 rounded-2xl border border-line bg-white p-4">
-      <StatusPill tone="green">ready to review</StatusPill>
-      <div className="my-4 border-y border-line py-4">
-        <p className="text-sm text-slate-500">Pay now</p>
-        <p className="mt-1 text-4xl font-extrabold tracking-[-0.04em] text-ink">{dollars(recommendation.out_of_pocket_usd)}</p>
-        <p className="text-sm text-slate-500">{dollars(recommendation.effective_savings_usd)} savings included</p>
-      </div>
-      <div className="space-y-2">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between border-t border-line pt-2 first:border-t-0 first:pt-0">
-            <span className="text-sm text-slate-600">{label}</span>
-            <strong className="max-w-36 text-right text-sm capitalize text-ink">{value}</strong>
-          </div>
-        ))}
-      </div>
-      <button className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-night px-4 text-sm font-bold text-white">
-        <WalletCards size={16} aria-hidden="true" />
-        Open details
-      </button>
-    </div>
-  );
-}
-
 function ConnectedEmptyState({
   connectedSourceCount,
   providerReadiness,
@@ -802,35 +708,4 @@ function ConnectedEmptyState({
       </div>
     </div>
   );
-}
-
-function deriveRoute(label: string, origin: string, destination: string) {
-  const lower = label.toLowerCase();
-  const from = normalizeAirportCode(origin, "SFO");
-
-  if (lower.includes("san diego") || lower.includes("san ")) {
-    return { from, to: "SAN" };
-  }
-  if (lower.includes("nyc") || lower.includes("new york")) {
-    return { from, to: "NYC" };
-  }
-  return { from, to: normalizeAirportCode(destination, "TRIP") };
-}
-
-function normalizeAirportCode(value: string, fallback: string) {
-  const trimmed = value.trim().toUpperCase();
-  if (!trimmed) {
-    return fallback;
-  }
-
-  const aliases: Record<string, string> = {
-    "NEW YORK": "NYC",
-    NYC: "NYC",
-    "SAN DIEGO": "SAN",
-    SAN: "SAN",
-    "LOS ANGELES": "LAX",
-    "SAN FRANCISCO": "SFO",
-  };
-
-  return aliases[trimmed] ?? trimmed.slice(0, 3);
 }
