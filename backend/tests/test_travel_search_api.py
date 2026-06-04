@@ -172,17 +172,25 @@ def test_discover_filters_weak_google_hotel_five_star_claim(monkeypatch) -> None
     )
 
 
-def test_discovery_scope_expands_to_us_europe_and_southeast_asia() -> None:
+def test_discovery_scope_expands_to_global_region_catalogs() -> None:
     from app.core.trip_discovery import _candidate_destinations, _discovery_scope
 
     assert _discovery_scope("Find 5 star hotels across the US") == "united_states"
     assert _discovery_scope("Find luxury hotels across Europe") == "europe"
     assert _discovery_scope("Find beach hotels in Southeast Asia") == "southeast_asia"
+    assert _discovery_scope("Find hotels in East Asia") == "east_asia"
+    assert _discovery_scope("Find hotels in Japan or Korea") == "east_asia"
+    assert _discovery_scope("Find boutique hotels in Central America") == "latin_america"
+    assert _discovery_scope("Find luxury hotels in South America") == "latin_america"
+    assert _discovery_scope("Find hotels in Asia") == "asia"
 
     constraints = {"include_near_misses": True, "hotel_min_stars": 5}
     us_candidates = _candidate_destinations(constraints, 40, True, "united_states")
     europe_candidates = _candidate_destinations(constraints, 20, True, "europe")
     southeast_asia_candidates = _candidate_destinations(constraints, 20, True, "southeast_asia")
+    east_asia_candidates = _candidate_destinations(constraints, 20, True, "east_asia")
+    latin_america_candidates = _candidate_destinations(constraints, 40, True, "latin_america")
+    asia_candidates = _candidate_destinations(constraints, 40, True, "asia")
 
     assert "New York" in {candidate.city for candidate in us_candidates}
     europe_cities = {candidate.city for candidate in europe_candidates}
@@ -190,6 +198,13 @@ def test_discovery_scope_expands_to_us_europe_and_southeast_asia() -> None:
     assert "Reykjavik" in europe_cities
     assert "Berlin" in europe_cities
     assert "Bangkok" in {candidate.city for candidate in southeast_asia_candidates}
+    assert "Tokyo" in {candidate.city for candidate in east_asia_candidates}
+    assert "Seoul" in {candidate.city for candidate in east_asia_candidates}
+    assert "Mexico City" in {candidate.city for candidate in latin_america_candidates}
+    assert "Costa Rica" in {candidate.city for candidate in latin_america_candidates}
+    asia_cities = {candidate.city for candidate in asia_candidates}
+    assert "Bangkok" in asia_cities
+    assert "Tokyo" in asia_cities
 
 
 def test_discovery_travel_time_constraint_filters_wider_catalog() -> None:

@@ -1,6 +1,6 @@
 # Travel Booking Optimizer Architecture Handoff
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
 
 ## Latest Session Notes
 
@@ -44,6 +44,7 @@ Last updated: 2026-06-02
 - 2026-06-03: Added a discovery control layer. Each discovery request now builds a plan with scope, candidate-pool size, matched candidates, selected candidates, provider-call budget, estimated provider calls, and skipped candidate count. `DISCOVERY_PROVIDER_CALL_BUDGET` can cap live discovery breadth from environment config.
 - 2026-06-03: Added structured constraint-fit checks to trip discovery results. Expanded itinerary cards now show per-constraint pass/near-miss/fail/unknown states for travel time, hotel class, nightly price, and guest rating when those constraints/signals exist.
 - 2026-06-04: Expanded the Europe discovery catalog and updated frontend discovery routing so region values such as `Europe`, `Southeast Asia`, `United States`, and `global` in the destination field trigger scoped discovery instead of ordinary single-destination search.
+- 2026-06-04: Added East Asia, combined Asia, and Central/South America discovery scopes while keeping the provider-call budget cap. Expanded Southeast Asia with more resort/city candidates, and added frontend provider-quality badges that distinguish direct API inventory, fallback verification links, Google source links, composite itineraries, and missing/manual verification.
 
 ## Project Location
 

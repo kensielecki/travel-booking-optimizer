@@ -187,11 +187,17 @@ function ProviderDetailSection({ option }: { option: Recommendation["option"] })
   const kind = stringValue(details.kind);
   const packageFlight = recordValue(details.flight);
   const packageHotel = recordValue(details.hotel);
+  const quality = providerQuality(option.source_provider, option.source_environment, option.booking_url ?? null);
 
   return (
     <section className="mt-3 rounded-md border border-line bg-surface/80 p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase text-signal">Provider details</p>
+        <div>
+          <p className="text-xs font-semibold uppercase text-signal">Provider details</p>
+          <div className="mt-1">
+            <ProviderQualityBadge quality={quality} />
+          </div>
+        </div>
         {option.booking_url ? <BookingLink href={option.booking_url} /> : null}
       </div>
 
@@ -212,7 +218,12 @@ function ProviderDetailSection({ option }: { option: Recommendation["option"] })
           </div>
         </>
       ) : (
-        <StandaloneDetailCard details={details} bookingUrl={option.booking_url ?? null} />
+        <StandaloneDetailCard
+          details={details}
+          bookingUrl={option.booking_url ?? null}
+          provider={option.source_provider}
+          environment={option.source_environment}
+        />
       )}
     </section>
   );
@@ -267,9 +278,11 @@ function ConstraintBadge({ status }: { status: string }) {
 function LegDetailCard({ title, leg }: { title: string; leg: Record<string, unknown> }) {
   const nestedDetails = recordValue(leg.details) ?? {};
   const bookingUrl = stringValue(leg.booking_url);
+  const quality = providerQuality(stringValue(leg.provider), undefined, bookingUrl ?? null);
   const rows = compactRows([
     ["Provider", stringValue(leg.provider)?.replaceAll("_", " ")],
     ["Merchant", stringValue(leg.merchant)],
+    ["Link quality", quality.label],
     ["Price", numberValue(leg.cash_price_usd) === null ? undefined : dollars(numberValue(leg.cash_price_usd) ?? 0)],
     ["Reference", stringValue(leg.provider_reference)],
     ["Room", stringValue(nestedDetails.room)],
@@ -284,6 +297,9 @@ function LegDetailCard({ title, leg }: { title: string; leg: Record<string, unkn
         <div>
           <p className="text-xs font-semibold text-ink">{title}</p>
           <p className="mt-1 text-sm leading-5 text-slate-700">{stringValue(leg.label) ?? "Selected option"}</p>
+          <div className="mt-2">
+            <ProviderQualityBadge quality={quality} compact />
+          </div>
         </div>
         {bookingUrl ? <BookingLink href={bookingUrl} short /> : null}
       </div>
@@ -296,12 +312,18 @@ function LegDetailCard({ title, leg }: { title: string; leg: Record<string, unkn
 function StandaloneDetailCard({
   details,
   bookingUrl,
+  provider,
+  environment,
 }: {
   details: Record<string, unknown>;
   bookingUrl: string | null;
+  provider?: string | null;
+  environment?: string | null;
 }) {
+  const quality = providerQuality(provider ?? stringValue(details.provider), environment, bookingUrl);
   const rows = compactRows([
     ["Kind", stringValue(details.kind)],
+    ["Link quality", quality.label],
     ["Stops", valueText(details.stops)],
     ["Duration", stringValue(details.duration)],
     ["Room", stringValue(details.room)],
@@ -314,9 +336,12 @@ function StandaloneDetailCard({
   return (
     <div className="mt-2 rounded-md bg-white p-3">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm leading-5 text-slate-700">
-          {bookingUrl ? "Open the source link to verify current availability, price, and final checkout rules." : "Provider did not supply an open verification link for this result yet."}
-        </p>
+        <div>
+          <ProviderQualityBadge quality={quality} />
+          <p className="mt-2 text-sm leading-5 text-slate-700">
+            {bookingUrl ? quality.detail : "Provider did not supply an open verification link for this result yet."}
+          </p>
+        </div>
         {bookingUrl ? <BookingLink href={bookingUrl} short /> : null}
       </div>
       <DetailRows rows={rows} />
@@ -411,6 +436,127 @@ function BookingLink({ href, short = false }: { href: string; short?: boolean })
       <ExternalLink size={13} aria-hidden="true" />
     </a>
   );
+}
+
+type ProviderQuality = {
+  label: string;
+  detail: string;
+  tone: "green" | "blue" | "amber" | "red" | "slate";
+};
+
+function ProviderQualityBadge({ quality, compact = false }: { quality: ProviderQuality; compact?: boolean }) {
+  const classes = {
+    green: "border-accent/25 bg-accent/10 text-teal-800",
+    blue: "border-cobalt/20 bg-cobalt/10 text-blue-800",
+    amber: "border-amber-200 bg-amber-50 text-amber-800",
+    red: "border-red-200 bg-red-50 text-red-700",
+    slate: "border-line bg-white text-slate-600",
+  }[quality.tone];
+
+  return (
+    <span
+      title={quality.detail}
+      className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-semibold ${classes} ${compact ? "max-w-full" : ""}`}
+    >
+      {quality.label}
+    </span>
+  );
+}
+
+function providerQuality(provider: unknown, environment: unknown, bookingUrl: string | null): ProviderQuality {
+  const source = stringValue(provider)?.toLowerCase() ?? "";
+  const env = stringValue(environment)?.toLowerCase() ?? "";
+  const host = safeHost(bookingUrl);
+  const googleFallback = Boolean(host?.includes("google."));
+
+  if (env === "mock" || source.includes("mock")) {
+    return {
+      label: "Mock estimate",
+      detail: "This is a fallback estimate, not a live bookable provider result.",
+      tone: "red",
+    };
+  }
+
+  if (source.includes("trip_discovery")) {
+    return {
+      label: "Composite itinerary",
+      detail: "This itinerary combines separate flight and hotel legs. Inspect each leg for booking-link quality.",
+      tone: "blue",
+    };
+  }
+
+  if (!bookingUrl) {
+    return {
+      label: "Needs manual verification",
+      detail: "The provider returned data without a public booking or verification link.",
+      tone: "red",
+    };
+  }
+
+  if (source.includes("duffel")) {
+    return googleFallback
+      ? {
+          label: "API offer, fallback link",
+          detail: "Duffel returned flight inventory, but this link is a fallback market verification handoff.",
+          tone: "amber",
+        }
+      : {
+          label: "Direct flight API offer",
+          detail: "Duffel returned live flight inventory. Final booking still needs the checkout/order flow.",
+          tone: "green",
+        };
+  }
+
+  if (source.includes("liteapi")) {
+    return googleFallback
+      ? {
+          label: "Rate API, fallback link",
+          detail: "LiteAPI returned hotel-rate inventory, but this link is a fallback verification handoff.",
+          tone: "amber",
+        }
+      : {
+          label: "Direct hotel rate API",
+          detail: "LiteAPI returned live hotel inventory with a provider handoff reference.",
+          tone: "green",
+        };
+  }
+
+  if (source.includes("serpapi_google")) {
+    return {
+      label: "Google source link",
+      detail: "This is a live market-discovery result with a Google handoff link for verification.",
+      tone: "blue",
+    };
+  }
+
+  if (source.includes("kiwi") || source.includes("tequila")) {
+    return {
+      label: "Provider deep link",
+      detail: "The provider returned a source link for manual availability and checkout verification.",
+      tone: "green",
+    };
+  }
+
+  return googleFallback
+    ? {
+        label: "Fallback verification link",
+        detail: "The result has a fallback link for manual verification, not a confirmed provider checkout link.",
+        tone: "amber",
+      }
+    : {
+        label: "Source link",
+        detail: "Open the source link to verify current availability, price, and final checkout rules.",
+        tone: "blue",
+      };
+}
+
+function safeHost(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 function parseDetails(notes: string[]) {

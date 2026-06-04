@@ -114,15 +114,62 @@ EUROPE_CANDIDATES = [
 SOUTHEAST_ASIA_CANDIDATES = [
     CandidateDestination("Singapore", "SIN", "Southeast Asia", 1030, None, "Singapore"),
     CandidateDestination("Bangkok", "BKK", "Thailand", 1020, None, "Bangkok Thailand"),
+    CandidateDestination("Chiang Mai", "CNX", "Thailand", 1060, None, "Chiang Mai Thailand"),
     CandidateDestination("Phuket", "HKT", "Thailand", 1080, None, "Phuket Thailand"),
+    CandidateDestination("Koh Samui", "USM", "Thailand", 1110, None, "Koh Samui Thailand"),
     CandidateDestination("Bali", "DPS", "Indonesia", 1120, None, "Bali Indonesia"),
+    CandidateDestination("Lombok", "LOP", "Indonesia", 1140, None, "Lombok Indonesia"),
+    CandidateDestination("Jakarta", "CGK", "Indonesia", 1040, None, "Jakarta Indonesia"),
+    CandidateDestination("Yogyakarta", "YIA", "Indonesia", 1090, None, "Yogyakarta Indonesia"),
     CandidateDestination("Kuala Lumpur", "KUL", "Malaysia", 1050, None, "Kuala Lumpur Malaysia"),
+    CandidateDestination("Penang", "PEN", "Malaysia", 1080, None, "Penang Malaysia"),
     CandidateDestination("Ho Chi Minh City", "SGN", "Vietnam", 1000, None, "Ho Chi Minh City Vietnam"),
     CandidateDestination("Hanoi", "HAN", "Vietnam", 980, None, "Hanoi Vietnam"),
+    CandidateDestination("Da Nang / Hoi An", "DAD", "Vietnam", 1030, None, "Hoi An Vietnam"),
+    CandidateDestination("Nha Trang", "CXR", "Vietnam", 1040, None, "Nha Trang Vietnam"),
     CandidateDestination("Manila", "MNL", "Philippines", 840, None, "Manila Philippines"),
     CandidateDestination("Cebu", "CEB", "Philippines", 930, None, "Cebu Philippines"),
     CandidateDestination("Siem Reap", "SAI", "Cambodia", 1040, None, "Siem Reap Cambodia"),
+    CandidateDestination("Luang Prabang", "LPQ", "Laos", 1040, None, "Luang Prabang Laos"),
 ]
+
+EAST_ASIA_CANDIDATES = [
+    CandidateDestination("Tokyo", "HND", "Japan", 660, None, "Tokyo Japan"),
+    CandidateDestination("Kyoto", "KIX", "Japan", 700, None, "Kyoto Japan"),
+    CandidateDestination("Osaka", "KIX", "Japan", 700, None, "Osaka Japan"),
+    CandidateDestination("Fukuoka", "FUK", "Japan", 735, None, "Fukuoka Japan"),
+    CandidateDestination("Okinawa", "OKA", "Japan", 775, None, "Okinawa Japan"),
+    CandidateDestination("Seoul", "ICN", "South Korea", 720, None, "Seoul South Korea"),
+    CandidateDestination("Taipei", "TPE", "Taiwan", 800, None, "Taipei Taiwan"),
+    CandidateDestination("Hong Kong", "HKG", "Hong Kong", 845, None, "Hong Kong"),
+    CandidateDestination("Shanghai", "PVG", "China", 790, None, "Shanghai China"),
+    CandidateDestination("Beijing", "PEK", "China", 810, None, "Beijing China"),
+]
+
+LATIN_AMERICA_CANDIDATES = [
+    CandidateDestination("Mexico City", "MEX", "Mexico", 250, None, "Mexico City Mexico"),
+    CandidateDestination("Los Cabos", "SJD", "Mexico", 190, None, "Los Cabos Mexico"),
+    CandidateDestination("Puerto Vallarta", "PVR", "Mexico", 220, None, "Puerto Vallarta Mexico"),
+    CandidateDestination("Cancun", "CUN", "Mexico", 310, None, "Cancun Mexico"),
+    CandidateDestination("Belize", "BZE", "Central America", 330, None, "Belize"),
+    CandidateDestination("Guatemala City / Antigua", "GUA", "Central America", 330, None, "Antigua Guatemala"),
+    CandidateDestination("Costa Rica", "SJO", "Central America", 360, None, "Costa Rica"),
+    CandidateDestination("Panama City", "PTY", "Central America", 415, None, "Panama City Panama"),
+    CandidateDestination("Cartagena", "CTG", "Colombia", 450, None, "Cartagena Colombia"),
+    CandidateDestination("Medellin", "MDE", "Colombia", 455, None, "Medellin Colombia"),
+    CandidateDestination("Bogota", "BOG", "Colombia", 460, None, "Bogota Colombia"),
+    CandidateDestination("Quito", "UIO", "Ecuador", 470, None, "Quito Ecuador"),
+    CandidateDestination("Galapagos", "GPS", "Ecuador", 560, None, "Galapagos Ecuador"),
+    CandidateDestination("Lima", "LIM", "Peru", 500, None, "Lima Peru"),
+    CandidateDestination("Cusco", "CUZ", "Peru", 560, None, "Cusco Peru"),
+    CandidateDestination("Santiago", "SCL", "Chile", 700, None, "Santiago Chile"),
+    CandidateDestination("Buenos Aires", "EZE", "Argentina", 760, None, "Buenos Aires Argentina"),
+    CandidateDestination("Montevideo", "MVD", "Uruguay", 800, None, "Montevideo Uruguay"),
+    CandidateDestination("Rio de Janeiro", "GIG", "Brazil", 820, None, "Rio de Janeiro Brazil"),
+    CandidateDestination("Sao Paulo", "GRU", "Brazil", 800, None, "Sao Paulo Brazil"),
+]
+
+ASIA_CANDIDATES = [*SOUTHEAST_ASIA_CANDIDATES, *EAST_ASIA_CANDIDATES]
 
 
 def discover_trip_options(request: TripDiscoveryRequest) -> OptimizationResponse:
@@ -228,6 +275,31 @@ def _discovery_scope(text: str) -> str:
     normalized = text.lower()
     if any(token in normalized for token in ["south east asia", "southeast asia", "sea asia", "thailand", "vietnam", "singapore", "bali"]):
         return "southeast_asia"
+    if any(token in normalized for token in ["east asia", "japan", "tokyo", "kyoto", "osaka", "korea", "seoul", "taiwan", "taipei", "hong kong", "china"]):
+        return "east_asia"
+    if "asia" in normalized:
+        return "asia"
+    if any(
+        token in normalized
+        for token in [
+            "central america",
+            "south america",
+            "latin america",
+            "mexico",
+            "costa rica",
+            "panama",
+            "belize",
+            "guatemala",
+            "colombia",
+            "peru",
+            "ecuador",
+            "chile",
+            "argentina",
+            "uruguay",
+            "brazil",
+        ]
+    ):
+        return "latin_america"
     if any(token in normalized for token in ["europe", "european", "france", "italy", "spain", "london", "paris"]):
         return "europe"
     if any(token in normalized for token in ["across the us", "across us", "united states", "usa", "u.s.", "america", "domestic"]):
@@ -243,6 +315,9 @@ def _scope_label(scope: str) -> str:
         "united_states": "United States",
         "europe": "Europe",
         "southeast_asia": "Southeast Asia",
+        "east_asia": "East Asia",
+        "asia": "Asia",
+        "latin_america": "Central & South America",
         "global": "global",
     }.get(scope, "Bay Area")
 
@@ -254,8 +329,14 @@ def _candidate_pool(scope: str) -> list[CandidateDestination]:
         return EUROPE_CANDIDATES
     if scope == "southeast_asia":
         return SOUTHEAST_ASIA_CANDIDATES
+    if scope == "east_asia":
+        return EAST_ASIA_CANDIDATES
+    if scope == "asia":
+        return ASIA_CANDIDATES
+    if scope == "latin_america":
+        return LATIN_AMERICA_CANDIDATES
     if scope == "global":
-        return [*US_CANDIDATES, *EUROPE_CANDIDATES, *SOUTHEAST_ASIA_CANDIDATES]
+        return [*US_CANDIDATES, *EUROPE_CANDIDATES, *ASIA_CANDIDATES, *LATIN_AMERICA_CANDIDATES]
     return BAY_AREA_CANDIDATES
 
 
