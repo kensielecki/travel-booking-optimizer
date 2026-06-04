@@ -161,13 +161,20 @@ export function TripOptimizer({
 
     try {
       const discoveryMode = shouldUseDiscoveryMode(intent, destination);
+      const rawIntent = [
+        intent.trim(),
+        discoveryMode && destination.trim() ? `Destination scope: ${destination.trim()}.` : null,
+        constraints.length ? `Constraints: ${constraints.join("; ")}.` : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
       const apiResponse = await fetch(`${apiUrl}/travel-search/${discoveryMode ? "discover" : "optimize"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           search: {
             user_id: userId,
-            raw_intent: constraints.length ? `${intent.trim()} Constraints: ${constraints.join("; ")}.` : intent.trim(),
+            raw_intent: rawIntent,
             origin: origin.trim() || undefined,
             destination: discoveryMode ? "Open destination discovery" : destination.trim() || undefined,
             departure_date: departureDate || undefined,
@@ -394,6 +401,22 @@ function shouldUseDiscoveryMode(intent: string, destination: string) {
   if (!destinationText || destinationText.includes("open") || destinationText.includes("any")) {
     return true;
   }
+  const regionalDestinationSignals = [
+    "europe",
+    "european",
+    "southeast asia",
+    "south east asia",
+    "asia",
+    "united states",
+    "usa",
+    "u.s.",
+    "domestic",
+    "international",
+    "global",
+  ];
+  if (regionalDestinationSignals.some((signal) => destinationText.includes(signal))) {
+    return true;
+  }
 
   const discoverySignals = [
     "anywhere",
@@ -401,6 +424,16 @@ function shouldUseDiscoveryMode(intent: string, destination: string) {
     "somewhere",
     "find me",
     "where should",
+    "europe",
+    "european",
+    "southeast asia",
+    "south east asia",
+    "united states",
+    "usa",
+    "u.s.",
+    "domestic",
+    "international",
+    "global",
     "under 3 hours",
     "under three hours",
     "fly more than",

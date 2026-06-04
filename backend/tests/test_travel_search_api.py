@@ -185,7 +185,10 @@ def test_discovery_scope_expands_to_us_europe_and_southeast_asia() -> None:
     southeast_asia_candidates = _candidate_destinations(constraints, 20, True, "southeast_asia")
 
     assert "New York" in {candidate.city for candidate in us_candidates}
-    assert "Paris" in {candidate.city for candidate in europe_candidates}
+    europe_cities = {candidate.city for candidate in europe_candidates}
+    assert "Paris" in europe_cities
+    assert "Reykjavik" in europe_cities
+    assert "Berlin" in europe_cities
     assert "Bangkok" in {candidate.city for candidate in southeast_asia_candidates}
 
 
