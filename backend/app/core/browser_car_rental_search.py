@@ -5,6 +5,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 from app.core.reservation_agent import plan_reservation
@@ -23,6 +24,22 @@ _SOURCE_URLS = {
     "national": "https://www.nationalcar.com/en/reserve.html",
     "avis": "https://www.avis.com/en/reservation",
 }
+
+
+def _load_local_env() -> None:
+    env_path = Path(__file__).resolve().parents[2] / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ[key.strip()] = value.strip().strip('"').strip("'")
+
+
+_load_local_env()
 
 
 def search_car_rentals_with_browser(payload: CarRentalBrowserSearchRequest) -> ReservationPlan:
