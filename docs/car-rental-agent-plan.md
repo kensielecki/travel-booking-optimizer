@@ -16,6 +16,14 @@ The first car-rental agent layer is implemented as a safe backend skeleton. It c
 
 It cannot yet submit a real provider booking. It also does not yet confirm live car inventory from a connected car API. That is intentional.
 
+An experimental browser-search endpoint now exists for faster inventory discovery:
+
+```http
+POST /reservations/car-rentals/browser-search
+```
+
+This can use TinyFish when `TINYFISH_API_KEY` is configured. Browser-scraped results are labeled as unverified and must be reopened before approval. This endpoint must not log in, reserve, enter payment, or click final booking buttons.
+
 ## Borrowed Pattern From `2603_events-aggregator`
 
 The events RSVP project has a useful agent pattern:
@@ -67,6 +75,12 @@ Read state:
 GET /reservations/{user_id}/state
 ```
 
+Browser search readiness:
+
+```http
+GET /reservations/car-rentals/browser-readiness
+```
+
 ## Current Guardrails
 
 Required before queueing:
@@ -111,7 +125,7 @@ When credentials are added later:
 ## Next Build Steps
 
 1. Add frontend UI for car-rental reservation planning.
-2. Add a real provider discovery layer for car rentals.
+2. Add frontend UI for experimental browser-scraped car-rental discovery.
 3. Add provider readiness metadata for car rentals.
 4. Connect the first real car inventory API once access is available.
 5. Add real execution only after:
@@ -142,5 +156,7 @@ The product now separates provider checks from confirmed inventory:
 | Expedia | Aggregator handoff/check link now; possible API path later. | Expedia Group Rapid includes a Cars API for search/details/booking flows, but access requires partner setup. | Aggregator check |
 | Kayak | Aggregator handoff/check link now. | Useful metasearch UI; public booking API access is not confirmed. | Aggregator check |
 | Booking.com Cars | Aggregator handoff/check link now; possible API path later. | Demand API exposes cars search/details; car orders are currently beta/permissioned. | API candidate |
+| TinyFish | Browser automation. | Requires `TINYFISH_API_KEY`; implemented as experimental browser search. | Browser scrape, unverified |
+| Browserbase | Browser automation candidate. | Requires `BROWSERBASE_API_KEY`; not implemented yet. | Browser scrape candidate |
 
 For V0/V1, these checks are useful for quickly opening the right provider pages, but the returned prices are estimated placeholders and must be verified before queueing or approving a reservation. Once a real car inventory API is connected, options from that provider should be labeled `production` and should include provider references, cancellation/no-show terms, taxes, fees, and final total.

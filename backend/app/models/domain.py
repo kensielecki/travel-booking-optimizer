@@ -233,6 +233,13 @@ class ReservationPlanRequest(BaseModel):
     max_options: int = Field(default=8, ge=1, le=12)
 
 
+class CarRentalBrowserSearchRequest(BaseModel):
+    intent: ReservationIntent
+    sources: List[str] = Field(default_factory=lambda: ["kayak"], max_length=3)
+    max_options: int = Field(default=5, ge=1, le=10)
+    browser_profile: Literal["default", "stealth"] = "stealth"
+
+
 class ReservationQueueRequest(BaseModel):
     plan: ReservationPlan
     selected_option_id: Optional[UUID] = None

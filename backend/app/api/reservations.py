@@ -4,6 +4,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
+from app.core.browser_car_rental_search import (
+    browser_car_rental_readiness,
+    search_car_rentals_with_browser,
+)
 from app.core.reservation_agent import (
     approve_reservation,
     execute_reservation_dry_run,
@@ -13,6 +17,7 @@ from app.core.reservation_agent import (
 )
 from app.models.domain import (
     AgentRun,
+    CarRentalBrowserSearchRequest,
     ReservationApprovalRequest,
     ReservationPlan,
     ReservationPlanRequest,
@@ -28,6 +33,16 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 @router.post("/plan", response_model=ReservationPlan)
 async def create_reservation_plan(payload: ReservationPlanRequest) -> ReservationPlan:
     return plan_reservation(payload)
+
+
+@router.get("/car-rentals/browser-readiness")
+async def read_car_rental_browser_readiness() -> dict:
+    return browser_car_rental_readiness()
+
+
+@router.post("/car-rentals/browser-search", response_model=ReservationPlan)
+async def create_car_rental_browser_search(payload: CarRentalBrowserSearchRequest) -> ReservationPlan:
+    return search_car_rentals_with_browser(payload)
 
 
 @router.post("/queue", response_model=ReservationQueueItem)
