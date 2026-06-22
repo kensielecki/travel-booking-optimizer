@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -30,7 +32,7 @@ def test_car_rental_plan_requires_core_booking_details() -> None:
 
 
 def test_car_rental_queue_approval_and_dry_run_flow() -> None:
-    user_id = "33333333-3333-4333-8333-333333333333"
+    user_id = str(uuid4())
     plan_response = client.post(
         "/reservations/plan",
         json={
@@ -49,15 +51,20 @@ def test_car_rental_queue_approval_and_dry_run_flow() -> None:
                 "driver_age": 35,
                 "constraints": ["pay later", "free cancellation"],
             },
-            "max_options": 3,
+            "max_options": 10,
         },
     )
 
     assert plan_response.status_code == 200
     plan = plan_response.json()
-    assert plan["risk_level"] == "low"
+    assert plan["risk_level"] == "medium"
     assert plan["recommended_option_id"]
     assert len(plan["options"]) >= 1
+    merchants = {option["merchant"] for option in plan["options"]}
+    assert {"National", "Avis", "Expedia", "Kayak"}.issubset(merchants)
+    assert all(option["source_environment"] == "unknown" for option in plan["options"])
+    assert all(option["booking_url"] for option in plan["options"])
+    assert any("not confirmed live inventory" in warning for warning in plan["warnings"])
     assert all(option["pay_later"] for option in plan["options"])
     assert all(option["free_cancellation"] for option in plan["options"])
 

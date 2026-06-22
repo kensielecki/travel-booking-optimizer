@@ -47,6 +47,7 @@ Last updated: 2026-06-22
 - 2026-06-04: Added East Asia, combined Asia, and Central/South America discovery scopes while keeping the provider-call budget cap. Expanded Southeast Asia with more resort/city candidates, and added frontend provider-quality badges that distinguish direct API inventory, fallback verification links, Google source links, composite itineraries, and missing/manual verification.
 - 2026-06-10: Added `docs/project-technical-summary.md` as the reviewer-facing project handoff. It includes the business case, architecture, design decisions, provider strategy, roadmap, risks, and the new supervised agent-booking direction for restaurant table and rental car reservations.
 - 2026-06-22: Started the supervised reservation-agent layer with car rentals first. Added reservation domain models, `/reservations/*` backend endpoints, local queue/approval/dry-run audit persistence, and `docs/car-rental-agent-plan.md`. This borrows the guardrail/queue/audit pattern from `2603_events-aggregator` but intentionally blocks real provider submission for now.
+- 2026-06-22: Expanded car-rental planning from mock options to provider handoff checks across National, Avis, Enterprise, Hertz, Budget, Alamo, Sixt, Expedia, Kayak, and Booking.com Cars. Added `docs/car-rental-provider-sources.md` and kept all generated options clearly labeled as not confirmed live inventory until a real car API is connected.
 
 ## Project Location
 

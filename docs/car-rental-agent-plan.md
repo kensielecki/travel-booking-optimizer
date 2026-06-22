@@ -7,14 +7,14 @@ Last updated: 2026-06-22
 The first car-rental agent layer is implemented as a safe backend skeleton. It can:
 
 - Create a car-rental reservation plan.
-- Generate mock pay-later/free-cancellation car options.
+- Generate pay-later/free-cancellation car-rental provider check options.
 - Apply guardrails before queueing.
 - Queue a selected option for review.
 - Record explicit approval.
 - Execute a dry run.
 - Persist queue, approval, and dry-run audit state locally.
 
-It cannot yet submit a real provider booking. That is intentional.
+It cannot yet submit a real provider booking. It also does not yet confirm live car inventory from a connected car API. That is intentional.
 
 ## Borrowed Pattern From `2603_events-aggregator`
 
@@ -85,6 +85,7 @@ Preferred/required for generated options:
 - Free cancellation.
 - No payment required now.
 - Maximum charge cap when supplied.
+- Booking/check URL supplied for manual verification.
 
 Execution:
 
@@ -111,12 +112,8 @@ When credentials are added later:
 
 1. Add frontend UI for car-rental reservation planning.
 2. Add a real provider discovery layer for car rentals.
-3. Research accessible car-rental APIs:
-   - CarTrawler.
-   - Rentalcars/Booking.com partner paths.
-   - Expedia Rapid cars, if access is available.
-   - Direct rental-provider affiliate/API paths.
-4. Add provider readiness metadata for car rentals.
+3. Add provider readiness metadata for car rentals.
+4. Connect the first real car inventory API once access is available.
 5. Add real execution only after:
    - final review screen exists,
    - explicit approval is persisted,
@@ -128,3 +125,22 @@ When credentials are added later:
 ## Product Rule
 
 The user can ask the product to book a car, but the system should first create a booking plan and require approval before any real reservation is submitted.
+
+## Car Rental Source Strategy
+
+The product now separates provider checks from confirmed inventory:
+
+| Source | Current use | Access notes | Product label |
+| --- | --- | --- | --- |
+| National | Direct handoff/check link | Direct public inventory API not confirmed; likely partner/commercial route. | Direct brand check |
+| Avis | Direct handoff/check link | Direct public inventory API not confirmed; likely partner/commercial route. | Direct brand check |
+| Enterprise | Direct handoff/check link | Direct public inventory API not confirmed; likely partner/commercial route. | Direct brand check |
+| Hertz | Direct handoff/check link | Direct public inventory API not confirmed; likely partner/commercial route. | Direct brand check |
+| Budget | Direct handoff/check link | Same Avis Budget family; public inventory API not confirmed. | Direct brand check |
+| Alamo | Direct handoff/check link | Enterprise Mobility family; public inventory API not confirmed. | Direct brand check |
+| Sixt | Direct handoff/check link | Public booking site available; API access requires partner validation. | Direct brand check |
+| Expedia | Aggregator handoff/check link now; possible API path later. | Expedia Group Rapid includes a Cars API for search/details/booking flows, but access requires partner setup. | Aggregator check |
+| Kayak | Aggregator handoff/check link now. | Useful metasearch UI; public booking API access is not confirmed. | Aggregator check |
+| Booking.com Cars | Aggregator handoff/check link now; possible API path later. | Demand API exposes cars search/details; car orders are currently beta/permissioned. | API candidate |
+
+For V0/V1, these checks are useful for quickly opening the right provider pages, but the returned prices are estimated placeholders and must be verified before queueing or approving a reservation. Once a real car inventory API is connected, options from that provider should be labeled `production` and should include provider references, cancellation/no-show terms, taxes, fees, and final total.

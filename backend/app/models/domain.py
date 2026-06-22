@@ -230,7 +230,7 @@ class ReservationRecord(BaseModel):
 
 class ReservationPlanRequest(BaseModel):
     intent: ReservationIntent
-    max_options: int = Field(default=4, ge=1, le=8)
+    max_options: int = Field(default=8, ge=1, le=12)
 
 
 class ReservationQueueRequest(BaseModel):

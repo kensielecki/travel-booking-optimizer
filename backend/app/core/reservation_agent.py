@@ -41,7 +41,7 @@ def plan_reservation(payload: ReservationPlanRequest) -> ReservationPlan:
     guardrails = _car_guardrails(intent)
     missing = [item["label"] for item in guardrails if item["status"] == "missing"]
     warnings = [item["detail"] for item in guardrails if item["status"] in {"warning", "blocked"}]
-    options = [] if missing else _mock_car_options(intent, payload.max_options)
+    options = [] if missing else _car_rental_check_options(intent, payload.max_options)
     filtered_options, option_warnings = _filter_car_options(options, intent)
     warnings.extend(option_warnings)
 
@@ -194,7 +194,7 @@ def _car_guardrails(intent: ReservationIntent) -> list[dict]:
     return checks
 
 
-def _mock_car_options(intent: ReservationIntent, max_options: int) -> list[ReservationOption]:
+def _car_rental_check_options(intent: ReservationIntent, max_options: int) -> list[ReservationOption]:
     vehicle = (intent.vehicle_class or "midsize").strip().lower()
     base_price = {
         "economy": 178,
@@ -206,13 +206,19 @@ def _mock_car_options(intent: ReservationIntent, max_options: int) -> list[Reser
         "luxury": 510,
     }.get(vehicle, 238)
     providers = [
-        ("mock_carrental_paylater", "Hertz", 1.0, "Pay later, free cancellation until 24h before pickup."),
-        ("mock_carrental_paylater", "Avis", 1.08, "Pay later, free cancellation until pickup."),
-        ("mock_carrental_paylater", "Enterprise", 1.12, "Pay later, free cancellation before pickup."),
-        ("mock_carrental_compare", "National", 1.22, "Loyalty-friendly option; pay later; free cancellation."),
+        ("direct_brand_handoff", "National", 1.00, 0.50, "Direct National check; verify Emerald Club, exact taxes, and cancellation on provider site."),
+        ("direct_brand_handoff", "Avis", 1.04, 0.48, "Direct Avis check; verify pay-later rate, taxes, and cancellation on provider site."),
+        ("direct_brand_handoff", "Enterprise", 1.06, 0.48, "Direct Enterprise check; verify branch hours, exact taxes, and cancellation on provider site."),
+        ("direct_brand_handoff", "Hertz", 1.08, 0.46, "Direct Hertz check; verify Gold Plus benefits, exact taxes, and cancellation on provider site."),
+        ("direct_brand_handoff", "Budget", 0.96, 0.44, "Direct Budget check; verify exact vehicle class, taxes, and cancellation on provider site."),
+        ("direct_brand_handoff", "Alamo", 0.98, 0.44, "Direct Alamo check; verify exact vehicle class, taxes, and cancellation on provider site."),
+        ("direct_brand_handoff", "Sixt", 1.12, 0.42, "Direct Sixt check; verify premium class availability, exact taxes, and cancellation on provider site."),
+        ("aggregator_handoff", "Expedia", 0.97, 0.40, "Expedia comparison check; useful for cross-brand pricing but must be verified on Expedia."),
+        ("aggregator_handoff", "Kayak", 0.95, 0.38, "Kayak metasearch check; useful for comparison but booking terms depend on the onward provider."),
+        ("aggregator_handoff", "Booking.com Cars", 0.99, 0.40, "Booking.com Cars check; API candidate for live search/look/redirect once partner access is configured."),
     ]
     options = []
-    for provider, merchant, multiplier, cancellation in providers[:max_options]:
+    for provider, merchant, multiplier, confidence, cancellation in providers[:max_options]:
         total = round(base_price * multiplier, 2)
         options.append(
             ReservationOption(
@@ -220,12 +226,14 @@ def _mock_car_options(intent: ReservationIntent, max_options: int) -> list[Reser
                 merchant=merchant,
                 label=f"{merchant} {vehicle.title()} car rental",
                 total_price_usd=total,
-                source_environment="mock",
-                provider_confidence=0.45,
+                source_environment="unknown",
+                provider_confidence=confidence,
                 booking_url=_provider_url(merchant),
-                provider_reference=f"dry-run-{merchant.lower()}-{int(total)}",
+                provider_reference=f"handoff-{merchant.lower().replace(' ', '-')}-{int(total)}",
                 cancellation_summary=cancellation,
                 details={
+                    "inventory_truth": "estimated_handoff_not_live_inventory",
+                    "source_kind": provider,
                     "pickup_location": intent.pickup_location,
                     "dropoff_location": intent.dropoff_location or intent.pickup_location,
                     "pickup_date": intent.pickup_date.isoformat() if intent.pickup_date else None,
@@ -242,6 +250,10 @@ def _mock_car_options(intent: ReservationIntent, max_options: int) -> list[Reser
 
 def _filter_car_options(options: list[ReservationOption], intent: ReservationIntent) -> tuple[list[ReservationOption], list[str]]:
     warnings = []
+    if options:
+        warnings.append(
+            "Car-rental results are provider handoff checks, not confirmed live inventory, until a car API is connected."
+        )
     filtered = [
         option
         for option in options
@@ -308,6 +320,12 @@ def _provider_url(merchant: str) -> str:
         "Avis": "https://www.avis.com/en/reservation",
         "Enterprise": "https://www.enterprise.com/en/car-rental.html",
         "National": "https://www.nationalcar.com/en/reserve.html",
+        "Budget": "https://www.budget.com/en/reservation",
+        "Alamo": "https://www.alamo.com/en/reserve.html",
+        "Sixt": "https://www.sixt.com/",
+        "Expedia": "https://www.expedia.com/Cars",
+        "Kayak": "https://www.kayak.com/cars",
+        "Booking.com Cars": "https://www.booking.com/cars.html",
     }.get(merchant, "https://www.google.com/travel/")
 
 
