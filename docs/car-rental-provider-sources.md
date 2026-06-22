@@ -30,6 +30,7 @@ Implication: TinyFish is useful to keep as a fast experimental lane, but the nex
 | Sixt | Direct brand | Handoff link now | Partner/commercial access, if available | Useful for premium/luxury inventory. |
 | CarTrawler | B2B mobility platform | Not implemented | Enterprise/partner path | Potentially strong car-rental infrastructure provider, but not self-serve in the same way as LiteAPI/Duffel. |
 | TinyFish | Browser automation | Experimental browser search | `TINYFISH_API_KEY` | Fastest path to scrape public rental results, but outputs must be marked unverified and re-opened before approval. |
+| Browserless | Managed browser automation | Experimental browser search | `BROWSERLESS_API_TOKEN` | Implemented as a REST browser function. Better fit than TinyFish for provider-specific scripts because we control the extraction code. |
 | Browserbase | Cloud browser automation | Candidate, not implemented | `BROWSERBASE_API_KEY` | Stronger longer-term browser-agent infrastructure with sessions, observability, and Stagehand-style automation. |
 
 ## Recommendation
@@ -37,7 +38,7 @@ Implication: TinyFish is useful to keep as a fast experimental lane, but the nex
 1. Use Booking.com Cars as the first real car inventory integration if partner access is practical.
 2. Keep Expedia Rapid Cars as second priority if the user can get partner access.
 3. Keep National, Avis, Enterprise, Hertz, Budget, Alamo, Sixt, Expedia, and Kayak as handoff/direct-check options so the agent can still help the user compare quickly.
-4. Use TinyFish first for browser-scraped public result discovery, then Browserbase if we need more controlled sessions, observability, or Stagehand workflows.
+4. Use Browserless first for browser-scraped public result discovery because it gives us code-level control of the browser function. Keep TinyFish as a secondary experimental lane, then Browserbase if we need more controlled sessions, observability, or Stagehand workflows.
 5. Add an inventory-truth label to every result:
    - `live_api_inventory`
    - `redirect_api_inventory`

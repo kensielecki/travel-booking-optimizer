@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.core.browser_car_rental_search import _options_from_tinyfish_result
+from app.core.browser_car_rental_search import _options_from_browserless_result, _options_from_tinyfish_result
 from app.main import app
 from app.models.domain import CarRentalBrowserSearchRequest, ReservationIntent
 
@@ -33,8 +33,10 @@ def test_browser_readiness_endpoint_reports_shape() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert "tinyfish" in payload
+    assert "browserless" in payload
     assert "browserbase" in payload
     assert "kayak" in payload["tinyfish"]["sources"]
+    assert "kayak" in payload["browserless"]["sources"]
 
 
 def test_browser_search_without_tinyfish_key_falls_back(monkeypatch) -> None:
@@ -83,3 +85,37 @@ def test_tinyfish_result_is_normalized_to_reservation_options() -> None:
     assert options[0].merchant == "Avis"
     assert options[0].total_price_usd == 241.22
     assert options[0].details["inventory_truth"] == "browser_scraped_unverified_inventory"
+
+
+def test_browserless_result_is_normalized_to_reservation_options() -> None:
+    intent = ReservationIntent.model_validate(_complete_intent())
+    payload = CarRentalBrowserSearchRequest(intent=intent, sources=["kayak"], max_options=2)
+
+    options, notes = _options_from_browserless_result(
+        "kayak",
+        {
+            "options": [
+                {
+                    "merchant": "kayak",
+                    "label": "Budget midsize | $219 total",
+                    "total_price_usd": 219,
+                    "currency": "USD",
+                    "booking_url": "https://www.kayak.com/cars/example",
+                    "vehicle_class": "midsize",
+                    "cancellation_summary": "Verify on provider site.",
+                    "pay_later": True,
+                    "free_cancellation": True,
+                    "provider_reference": "browserless-1",
+                }
+            ],
+            "notes": ["browserless sample"],
+        },
+        payload,
+    )
+
+    assert notes == ["browserless sample"]
+    assert len(options) == 1
+    assert options[0].provider == "browserless_kayak"
+    assert options[0].total_price_usd == 219
+    assert options[0].provider_confidence == 0.62
+    assert options[0].details["source_kind"] == "browserless_browser_scrape"

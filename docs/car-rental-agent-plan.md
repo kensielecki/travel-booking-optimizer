@@ -22,7 +22,7 @@ An experimental browser-search endpoint now exists for faster inventory discover
 POST /reservations/car-rentals/browser-search
 ```
 
-This can use TinyFish when `TINYFISH_API_KEY` is configured. Browser-scraped results are labeled as unverified and must be reopened before approval. This endpoint must not log in, reserve, enter payment, or click final booking buttons.
+This can use Browserless when `BROWSERLESS_API_TOKEN` is configured, then TinyFish when `TINYFISH_API_KEY` is configured. Browser-scraped results are labeled as unverified and must be reopened before approval. This endpoint must not log in, reserve, enter payment, or click final booking buttons.
 
 ## Borrowed Pattern From `2603_events-aggregator`
 
@@ -157,6 +157,7 @@ The product now separates provider checks from confirmed inventory:
 | Kayak | Aggregator handoff/check link now. | Useful metasearch UI; public booking API access is not confirmed. | Aggregator check |
 | Booking.com Cars | Aggregator handoff/check link now; possible API path later. | Demand API exposes cars search/details; car orders are currently beta/permissioned. | API candidate |
 | TinyFish | Browser automation. | Requires `TINYFISH_API_KEY`; implemented as experimental browser search. | Browser scrape, unverified |
+| Browserless | Browser automation. | Requires `BROWSERLESS_API_TOKEN`; implemented as a REST browser-function search. | Browser scrape, unverified |
 | Browserbase | Browser automation candidate. | Requires `BROWSERBASE_API_KEY`; not implemented yet. | Browser scrape candidate |
 
 For V0/V1, these checks are useful for quickly opening the right provider pages, but the returned prices are estimated placeholders and must be verified before queueing or approving a reservation. Once a real car inventory API is connected, options from that provider should be labeled `production` and should include provider references, cancellation/no-show terms, taxes, fees, and final total.
