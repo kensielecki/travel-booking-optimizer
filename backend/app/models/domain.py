@@ -46,6 +46,29 @@ class RankingMode(str, Enum):
     simplest = "simplest"
 
 
+class ReservationCategory(str, Enum):
+    car_rental = "car_rental"
+    restaurant = "restaurant"
+
+
+class ReservationStatus(str, Enum):
+    planned = "planned"
+    queued = "queued"
+    pending_review = "pending_review"
+    approved = "approved"
+    dry_run_completed = "dry_run_completed"
+    submitted = "submitted"
+    confirmed = "confirmed"
+    failed = "failed"
+    cancelled = "cancelled"
+
+
+class ReservationRiskLevel(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
 class LoyaltyAccount(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     user_id: UUID
@@ -104,6 +127,132 @@ class TravelSearchRequest(BaseModel):
     preferred_programs: List[Program] = Field(default_factory=list)
     ranking_mode: RankingMode = RankingMode.balanced
     max_results: int = Field(default=8, ge=1, le=20)
+
+
+class ReservationIntent(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    category: ReservationCategory = ReservationCategory.car_rental
+    raw_intent: str
+    pickup_location: Optional[str] = None
+    dropoff_location: Optional[str] = None
+    pickup_date: Optional[date] = None
+    pickup_time: Optional[time] = None
+    dropoff_date: Optional[date] = None
+    dropoff_time: Optional[time] = None
+    vehicle_class: Optional[str] = None
+    max_total_usd: Optional[float] = Field(default=None, gt=0)
+    driver_age: Optional[int] = Field(default=None, ge=18, le=99)
+    loyalty_programs: List[str] = Field(default_factory=list)
+    constraints: List[str] = Field(default_factory=list)
+
+
+class ReservationOption(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    category: ReservationCategory = ReservationCategory.car_rental
+    provider: str
+    merchant: str
+    label: str
+    total_price_usd: float = Field(ge=0)
+    currency: str = "USD"
+    booking_url: Optional[str] = None
+    provider_reference: Optional[str] = None
+    source_environment: Literal["production", "sandbox", "mock", "unknown"] = "mock"
+    provider_confidence: float = Field(default=0.55, ge=0, le=1)
+    pay_later: bool = True
+    free_cancellation: bool = True
+    cancellation_summary: Optional[str] = None
+    requires_payment_now: bool = False
+    details: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ReservationPlan(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    intent: ReservationIntent
+    options: List[ReservationOption] = Field(default_factory=list)
+    recommended_option_id: Optional[UUID] = None
+    status: ReservationStatus = ReservationStatus.planned
+    risk_level: ReservationRiskLevel = ReservationRiskLevel.low
+    guardrail_results: List[Dict[str, Any]] = Field(default_factory=list)
+    required_user_inputs: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ReservationQueueItem(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    plan: ReservationPlan
+    selected_option_id: UUID
+    status: ReservationStatus = ReservationStatus.pending_review
+    queued_at: datetime = Field(default_factory=datetime.utcnow)
+    book_after: datetime
+    approval_required: bool = True
+    max_charge_usd: Optional[float] = Field(default=None, gt=0)
+
+
+class UserApproval(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    queue_item_id: UUID
+    approved_option_id: UUID
+    max_charge_usd: Optional[float] = Field(default=None, gt=0)
+    approval_scope: str
+    expires_at: Optional[datetime] = None
+    approved_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AgentRun(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    queue_item_id: UUID
+    agent_type: str = "car_rental_reservation"
+    dry_run: bool = True
+    status: ReservationStatus
+    steps: List[str] = Field(default_factory=list)
+    result_message: str
+    provider_response: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ReservationRecord(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    user_id: UUID
+    queue_item_id: UUID
+    option: ReservationOption
+    status: ReservationStatus
+    confirmation_number: Optional[str] = None
+    cancellation_link: Optional[str] = None
+    audit_metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ReservationPlanRequest(BaseModel):
+    intent: ReservationIntent
+    max_options: int = Field(default=4, ge=1, le=8)
+
+
+class ReservationQueueRequest(BaseModel):
+    plan: ReservationPlan
+    selected_option_id: Optional[UUID] = None
+    review_window_hours: int = Field(default=1, ge=0, le=168)
+    max_charge_usd: Optional[float] = Field(default=None, gt=0)
+
+
+class ReservationApprovalRequest(BaseModel):
+    approved_option_id: UUID
+    max_charge_usd: Optional[float] = Field(default=None, gt=0)
+    approval_scope: str = "dry-run car rental reservation only"
+    expires_at: Optional[datetime] = None
+
+
+class ReservationStateResponse(BaseModel):
+    user_id: UUID
+    queue: List[ReservationQueueItem] = Field(default_factory=list)
+    approvals: List[UserApproval] = Field(default_factory=list)
+    agent_runs: List[AgentRun] = Field(default_factory=list)
+    records: List[ReservationRecord] = Field(default_factory=list)
 
 
 class BookingOption(BaseModel):

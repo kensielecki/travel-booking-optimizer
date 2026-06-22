@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.demo import router as demo_router
 from app.api.ingestion import router as ingestion_router
 from app.api.optimize import router as optimize_router
+from app.api.reservations import router as reservations_router
 from app.api.shopping import router as shopping_router
 from app.api.travel_search import router as travel_search_router
 
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(demo_router)
 app.include_router(ingestion_router)
 app.include_router(optimize_router)
+app.include_router(reservations_router)
 app.include_router(shopping_router)
 app.include_router(travel_search_router)
 
