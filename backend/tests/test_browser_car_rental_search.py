@@ -37,6 +37,8 @@ def test_browser_readiness_endpoint_reports_shape() -> None:
     assert "browserbase" in payload
     assert "kayak" in payload["tinyfish"]["sources"]
     assert "kayak" in payload["browserless"]["sources"]
+    assert "BROWSERLESS_API_TOKEN" in payload["browserless"]["accepted_env_vars"]
+    assert isinstance(payload["browserless"]["detected_env_vars"], list)
 
 
 def test_browser_search_without_tinyfish_key_falls_back(monkeypatch) -> None:

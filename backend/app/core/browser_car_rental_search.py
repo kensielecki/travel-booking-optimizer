@@ -50,7 +50,7 @@ def search_car_rentals_with_browser(payload: CarRentalBrowserSearchRequest) -> R
     scraped_options: list[ReservationOption] = []
     warnings = list(base_plan.warnings)
 
-    browserless_token = os.getenv("BROWSERLESS_API_TOKEN")
+    browserless_token = _browserless_api_token()
     if browserless_token:
         for source in _normalize_sources(payload.sources):
             try:
@@ -105,9 +105,11 @@ def browser_car_rental_readiness() -> dict[str, Any]:
             "sources": sorted(_SOURCE_URLS),
         },
         "browserless": {
-            "configured": bool(os.getenv("BROWSERLESS_API_TOKEN")),
+            "configured": bool(_browserless_api_token()),
             "role": "REST browser function for public car-rental search pages",
             "sources": sorted(_SOURCE_URLS),
+            "accepted_env_vars": ["BROWSERLESS_API_TOKEN", "BROWSERLESS_API_KEY", "BROWSERLESS_TOKEN"],
+            "detected_env_vars": _detected_env_vars(["BROWSERLESS_API_TOKEN", "BROWSERLESS_API_KEY", "BROWSERLESS_TOKEN"]),
         },
         "browserbase": {
             "configured": bool(os.getenv("BROWSERBASE_API_KEY")),
@@ -124,6 +126,18 @@ def _normalize_sources(sources: list[str]) -> list[str]:
         if key in _SOURCE_URLS and key not in normalized:
             normalized.append(key)
     return normalized or ["kayak"]
+
+
+def _browserless_api_token() -> str | None:
+    for key in ("BROWSERLESS_API_TOKEN", "BROWSERLESS_API_KEY", "BROWSERLESS_TOKEN"):
+        value = os.getenv(key)
+        if value:
+            return value
+    return None
+
+
+def _detected_env_vars(keys: list[str]) -> list[str]:
+    return [key for key in keys if os.getenv(key)]
 
 
 def _browser_scrape_plan(

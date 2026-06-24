@@ -22,7 +22,7 @@ An experimental browser-search endpoint now exists for faster inventory discover
 POST /reservations/car-rentals/browser-search
 ```
 
-This can use Browserless when `BROWSERLESS_API_TOKEN` is configured, then TinyFish when `TINYFISH_API_KEY` is configured. Browser-scraped results are labeled as unverified and must be reopened before approval. This endpoint must not log in, reserve, enter payment, or click final booking buttons.
+This can use Browserless when `BROWSERLESS_API_TOKEN` is configured, then TinyFish when `TINYFISH_API_KEY` is configured. The Browserless adapter also accepts `BROWSERLESS_API_KEY` and `BROWSERLESS_TOKEN` as aliases. Browser-scraped results are labeled as unverified and must be reopened before approval. This endpoint must not log in, reserve, enter payment, or click final booking buttons.
 
 ## Borrowed Pattern From `2603_events-aggregator`
 
